@@ -192,7 +192,7 @@ def fetch(subpath=None):
             # rewrite static files (swagger/flasgger_static) to /fetch/openapi/
             def rewrite_static(m):
                 url_ = m.group("url").lstrip('/')
-                return f'{m.group("prefix")}/fetch/openapi/{url_}'
+                return f'{m.group("prefix")}/fetch/{url_}'
 
             text = re.sub(
                 r'(?P<prefix>(?:src|href)=["\'])(?P<url>(?:swagger|flasgger_static|static)/[^"\']+)',
