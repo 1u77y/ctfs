@@ -1,6 +1,6 @@
 FROM python:3.12-slim
 
-# Install dependencies (including gosu prerequisites)
+# Install dependencies (including gosu prerequisites and openssh-server)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     acl \
@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gnupg \
     dirmngr \
     wget \
+    openssh-server \
     && rm -rf /var/lib/apt/lists/*
 
 # Install gosu (clean uid/gid switch)
@@ -26,6 +27,15 @@ RUN set -eux; \
 # ----------------------------
 RUN useradd -m -s /bin/bash monkey
 
+# Set a password for monkey (for SSH; replace 'changeme' before production!)
+RUN echo "monkey:changeme" | chpasswd
+
+# Disable root login for SSH
+RUN mkdir /var/run/sshd; \
+    sed -i 's/^#PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd_config; \
+    sed -i 's/UsePAM yes/UsePAM no/' /etc/ssh/sshd_config; \
+    echo "AllowUsers monkey" >> /etc/ssh/sshd_config
+
 # Copy application files
 RUN mkdir -p /opt/.app
 COPY --chown=monkey:monkey . /opt/.app
@@ -35,8 +45,8 @@ RUN chown monkey:monkey /opt/.app/admin_api.py && chmod 711 /opt/.app/admin_api.
 
 # Create log directories and set permissions
 RUN mkdir -p /var/log/ctf_admin /var/ctf_status && \
-    chown -R monkey:monkey /var/log/ctf_admin /var/ctf_status && \
-    chmod -R 755 /var/log/ctf_admin /var/ctf_status
+    chown -R monkey:monkey /var/log/ctf_admin /var/log/ctf_status && \
+    chmod -R 755 /var/log/ctf_admin /var/log/ctf_status
 
 # ----------------------------
 # Cron runtime + log file
@@ -104,7 +114,7 @@ RUN echo "cd /home/monkey/.hidden_dir" > /home/monkey/.bash_history && \
     chmod 600 /home/monkey/.bash_history
 
 # ----------------------------
-# Disable root login (lock root password)
+# Disable root password login entirely (locks root account)
 # ----------------------------
 RUN passwd -l root
 
@@ -118,10 +128,10 @@ RUN python3 -m venv /home/monkey/.venv && \
     /home/monkey/.venv/bin/pip install flask requests flask-cors flask-openapi3 && \
     /home/monkey/.venv/bin/pip install -U "flask-openapi3[swagger]"
 
-# go back to root to create start script
+# Go back to root to create start script
 USER root
 
-# Create start.sh (start cron as root, then drop to monkey with gosu)
+# Create start.sh (start sshd and cron as root, then drop to monkey with gosu)
 RUN printf '%s\n' \
     '#!/usr/bin/env bash' \
     'set -euo pipefail' \
@@ -131,10 +141,13 @@ RUN printf '%s\n' \
     'touch /var/log/cron.log' \
     'chmod 666 /var/log/cron.log' \
     '' \
-    '# start cron in foreground, background it so it continues running' \
+    '# start cron in foreground in background' \
     'cron -f &' \
     '' \
-    '# small wait to ensure cron started' \
+    '# start sshd in background' \
+    '/usr/sbin/sshd -D &' \
+    '' \
+    '# small wait to ensure services started' \
     'sleep 0.2' \
     '' \
     '# drop privileges cleanly to monkey and exec the flask app (PID 1 will be python)' \
@@ -142,8 +155,8 @@ RUN printf '%s\n' \
     > /usr/local/bin/start.sh && \
     chmod +x /usr/local/bin/start.sh
 
-EXPOSE 9000
+EXPOSE 9000 22
 WORKDIR /home/monkey
 
-# Default command: start cron (root) then exec app as monkey (via gosu)
+# Default command: start sshd, cron (root), then exec app as monkey (via gosu)
 CMD ["/usr/local/bin/start.sh"]
