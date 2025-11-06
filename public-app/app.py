@@ -225,7 +225,7 @@ def fetch(subpath=None):
                 window.ui = SwaggerUIBundle({{
                     url: url,
                     dom_id: "#swagger-ui",
-                    deepLinking: true,
+                    deepLinking: false,
                     presets: [
                         SwaggerUIBundle.presets.apis,
                         SwaggerUIStandalonePreset
