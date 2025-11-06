@@ -107,7 +107,9 @@ def status():
 
 
 @app.route("/fetch", methods=["GET", "POST", "OPTIONS"])
-def fetch():
+@app.route("/fetch/<path:subpath>", methods=["GET", "POST", "OPTIONS"])
+def fetch(subpath=None):
+    # -------------------- OPTIONS --------------------
     if request.method == "OPTIONS":
         return '', 204, {
             "Access-Control-Allow-Origin": "*",
@@ -115,75 +117,59 @@ def fetch():
             "Access-Control-Allow-Headers": "Content-Type",
         }
 
+    # -------------------- Determine target_url --------------------
     raw_url = request.args.get("url")
-    if not raw_url:
-        return jsonify({"error": "Missing 'url' parameter"}), 400
+    if subpath:
+        # path-based proxy: /fetch/<path>
+        target_url = f"http://admin_api:9000/{subpath}"
+    elif raw_url:
+        target_url = unquote(raw_url.strip())
+        parsed = urlparse(target_url)
+        if parsed.hostname in ("localhost", "127.0.0.1", "109.205.181.210") and (parsed.port == 9000 or parsed.port is None):
+            parsed = parsed._replace(netloc="admin_api:9000")
+            target_url = urlunparse(parsed)
+    else:
+        return jsonify({"error": "Missing 'url' parameter or path"}), 400
 
-    target_url = unquote(raw_url.strip())
     parsed = urlparse(target_url)
-    if target_url == f"http://{parsed.hostname}/openapi.json":
-        internal_url = f"http://{parsed.hostname}:9000/openapi/openapi.json"
-        encoded_url = quote(internal_url, safe='')
-        target_url = f"http://{parsed.hostname}:12000/fetch?url={encoded_url}"
 
-   
+    # -------------------- Validation --------------------
     if parsed.scheme not in ("http", "https") or not parsed.hostname:
         return jsonify({"error": "Invalid URL scheme or hostname"}), 400
 
     hostname = parsed.hostname
-    port = parsed.port or (80 if parsed.scheme == "http" else 443)
-
-    if hostname in ("localhost", "127.0.0.1","109.205.181.210") and port == 9000:
-        parsed = parsed._replace(netloc="admin_api:9000")
-        target_url = urlunparse(parsed)
-        hostname = "admin_api"
-
     resolved_ips = resolve_hostname(hostname)
     ips_allowed = all(is_ip_allowed(ip) for ip in resolved_ips) if resolved_ips else False
     if hostname not in ALLOWED_HOSTNAMES and not ips_allowed:
         return jsonify({"error": "Host not allowed"}), 403
 
-    # Debug: log request headers and data preview
+    # -------------------- Debug --------------------
     app.logger.info(f"Fetch headers: {dict(request.headers)}")
     data_preview = request.get_data(as_text=True)[:200]
     app.logger.info(f"Fetch raw data preview: {data_preview}")
 
+    # -------------------- Make request --------------------
+    headers = {"User-Agent": USER_AGENT}
     try:
-        headers = {"User-Agent": USER_AGENT}
-
         if request.method == "POST":
             content_type_in = request.headers.get("Content-Type", "").lower()
-            app.logger.info(f"check json data: {content_type_in}")
             if "application/json" in content_type_in:
-                json_data = request.get_json(silent=True)
-                app.logger.info(f"check json data: {json_data}")
-                if json_data is None:
-                    app.logger.warning("Fetch POST invalid or empty JSON, using empty dict")
-                    json_data = {}
+                json_data = request.get_json(silent=True) or {}
                 resp = requests.post(
-                    target_url,
-                    headers=headers,
-                    json=json_data,
-                    timeout=REQUEST_TIMEOUT,
-                    allow_redirects=True,
+                    target_url, headers=headers, json=json_data,
+                    timeout=REQUEST_TIMEOUT, allow_redirects=True
                 )
             else:
                 data = request.get_data() or None
                 resp = requests.post(
-                    target_url,
-                    headers=headers,
-                    data=data,
-                    timeout=REQUEST_TIMEOUT,
-                    allow_redirects=True,
+                    target_url, headers=headers, data=data,
+                    timeout=REQUEST_TIMEOUT, allow_redirects=True
                 )
         else:
             resp = requests.get(
-                target_url,
-                headers=headers,
-                timeout=REQUEST_TIMEOUT,
-                allow_redirects=True,
+                target_url, headers=headers,
+                timeout=REQUEST_TIMEOUT, allow_redirects=True
             )
-
     except requests.RequestException as e:
         app.logger.error(f"Fetch request exception: {e}")
         return jsonify({"error": "Failed to fetch URL"}), 502
@@ -191,19 +177,19 @@ def fetch():
     content = resp.content
     content_type = resp.headers.get("Content-Type", "application/octet-stream")
 
+    # -------------------- HTML rewrite for Swagger --------------------
     if content_type and "text/html" in content_type.lower():
         try:
             text = content.decode("utf-8", errors="ignore")
-            base_tag = f'<base href="/fetch?url={quote(target_url, safe="")}" />'
+            # base tag for relative paths
+            base_tag = f'<base href="/fetch/" />'
             text = re.sub(r'(?i)<head\b[^>]*>', lambda m: m.group(0) + base_tag, text, count=1)
 
+            # rewrite static files (swagger, flasgger_static)
             def rewrite_static(m):
                 url_ = m.group("url").lstrip('/')
-                full_url = (
-                    f"http://{hostname}:9000/openapi/{url_}" if url_.startswith("swagger")
-                    else f"{parsed.scheme}://{parsed.netloc}/{url_}"
-                )
-                return f'{m.group("prefix")}/fetch?url=' + quote(full_url, safe='')
+                full_url = f"http://admin_api:9000/{url_}" if url_.startswith("swagger") else f"{parsed.scheme}://{parsed.netloc}/{url_}"
+                return f'{m.group("prefix")}/fetch/' + url_
 
             text = re.sub(
                 r'(?P<prefix>(?:src|href)=["\'])(?P<url>(?:swagger|flasgger_static|static)/[^"\']+)',
@@ -211,46 +197,18 @@ def fetch():
                 text
             )
 
-            text = re.sub(
-                r"<script.*?>.*?</script>",
-                lambda m: m.group(0).replace("None", "null"),
-                text,
-                flags=re.DOTALL | re.IGNORECASE
-            )
+            # fix None -> null in scripts
+            text = re.sub(r"<script.*?>.*?</script>", lambda m: m.group(0).replace("None", "null"), text, flags=re.DOTALL | re.IGNORECASE)
 
-            internal_url = f"http://{parsed.hostname}:9000/openapi/openapi.json"
-            encoded_url = quote(internal_url, safe='')
-            fixed_spec_url = f"http://109.205.181.210:12000/fetch?url={encoded_url}"
-
-            # fixed_spec_url = f"http://{hostname}:9000/openapi/openapi.json"
-            override_script = f"""
-            <script>
-            (function() {{
-                const FIXED_SPEC_URL = "{fixed_spec_url}";
-                function updateSwaggerSpec() {{
-                    if (window.ui && ui.specActions) {{
-                        ui.specActions.updateUrl(FIXED_SPEC_URL);
-                        ui.specActions.download(FIXED_SPEC_URL);
-                    }}
-                    const input = document.querySelector(".download-url-input");
-                    if (input) input.value = FIXED_SPEC_URL;
-                }}
-                document.addEventListener("DOMContentLoaded", updateSwaggerSpec);
-                window.addEventListener("load", updateSwaggerSpec);
-                setTimeout(updateSwaggerSpec, 100);
-            }})();
-            </script>
-            """
-            text = text.replace("</body>", override_script + "</body>")
             content = text.encode("utf-8")
-
         except Exception as e:
             app.logger.error(f"HTML rewrite error: {e}")
             return jsonify({"error": "HTML rewriting failed"}), 500
 
+    # -------------------- Headers --------------------
     headers_out = {
         "X-Proxy-Status": "proxied",
-        "X-Proxy-Original-URL": raw_url,
+        "X-Proxy-Original-URL": raw_url or f"/{subpath}",
         "X-Proxy-Final-URL": resp.url,
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
