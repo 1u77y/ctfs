@@ -218,7 +218,7 @@ def fetch(subpath=None):
             <script>
             const swagger_config = JSON.parse(`null`);
             window.onload = function () {{
-                const url = "{fixed_spec_url}"; // Force Swagger to use our proxy URL
+                const url = f"{fixed_spec_url}"; // Force Swagger to use our proxy URL
 
                 // Begin Swagger UI call region
                 window.ui = SwaggerUIBundle({{
