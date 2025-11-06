@@ -21,7 +21,7 @@ ALLOWED_NETWORKS = [
 
 ALLOWED_HOSTNAMES = {
     "admin-api", "public-app", "localhost", "127.0.0.1",
-    "res.cloudinary.com", "picsum.photos"
+    "res.cloudinary.com", "picsum.photos", "109.205.181.210"
 }
 
 USER_AGENT = "CTF-Fetcher/1.0"
