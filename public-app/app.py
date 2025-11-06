@@ -237,7 +237,7 @@ def fetch(subpath=None):
                     requestInterceptor: (req) => {{
                         const backend = "http://109.205.181.210:9000";
 
-                        if (req.url.startsWith("/fetch?url=")) {{
+                        if (req.url.startsWith("/fetch?url=") || req.url.includes("openapi")) {{
                             return req;
                         }}
 
