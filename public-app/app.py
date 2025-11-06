@@ -130,7 +130,7 @@ def fetch():
     hostname = parsed.hostname
     port = parsed.port or (80 if parsed.scheme == "http" else 443)
 
-    if hostname in ("localhost", "127.0.0.1") and port == 9000:
+    if hostname in ("localhost", "127.0.0.1","109.205.181.210") and port == 9000:
         parsed = parsed._replace(netloc="admin_api:9000")
         target_url = urlunparse(parsed)
         hostname = "admin_api"
