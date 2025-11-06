@@ -24,7 +24,7 @@ services:
     ports:
       - "9000"
     expose:
-      - "9000"
+      - "9000:9000"
     volumes:
       - ./admin-api:/home/appuser/app
     
