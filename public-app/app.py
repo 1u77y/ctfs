@@ -197,19 +197,19 @@ def fetch():
             base_tag = f'<base href="/fetch?url={quote(target_url, safe="")}" />'
             text = re.sub(r'(?i)<head\b[^>]*>', lambda m: m.group(0) + base_tag, text, count=1)
 
-            # def rewrite_static(m):
-                # url_ = m.group("url").lstrip('/')
-                # full_url = (
-                #     f"http://{hostname}:9000/openapi/{url_}" if url_.startswith("swagger")
-                #     else f"{parsed.scheme}://{parsed.netloc}/{url_}"
-                # )
-                # return f'{m.group("prefix")}/fetch?url=' + quote(full_url, safe='')
+            def rewrite_static(m):
+                url_ = m.group("url").lstrip('/')
+                full_url = (
+                    f"http://{hostname}:9000/openapi/{url_}" if url_.startswith("swagger")
+                    else f"{parsed.scheme}://{parsed.netloc}/{url_}"
+                )
+                return f'{m.group("prefix")}/fetch?url=' + quote(full_url, safe='')
 
-            # text = re.sub(
-            #     r'(?P<prefix>(?:src|href)=["\'])(?P<url>(?:swagger|flasgger_static|static)/[^"\']+)',
-            #     rewrite_static,
-            #     text
-            # )
+            text = re.sub(
+                r'(?P<prefix>(?:src|href)=["\'])(?P<url>(?:swagger|flasgger_static|static)/[^"\']+)',
+                rewrite_static,
+                text
+            )
 
             text = re.sub(
                 r"<script.*?>.*?</script>",
