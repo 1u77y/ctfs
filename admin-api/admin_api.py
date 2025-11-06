@@ -174,7 +174,9 @@ def templates_list():
     try:
         files = [
             f for f in sorted(os.listdir(TEMPLATES_DIR))
-            if not f.startswith(".") and f.lower().endswith((".html", ".txt"))
+            if not f.startswith(".")
+            and f.lower().endswith((".html", ".txt"))
+            and f.lower() != "hint.html"
         ]
     except FileNotFoundError:
         files = []
