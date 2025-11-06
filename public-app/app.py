@@ -20,7 +20,6 @@ ALLOWED_NETWORKS = [
 ]
 
 ALLOWED_HOSTNAMES = {
-    "admin-api", "public-app", "localhost", "127.0.0.1",
     "res.cloudinary.com", "picsum.photos", "109.205.181.210"
 }
 
@@ -129,7 +128,7 @@ def fetch(subpath=None):
         # query param ?url= fallback
         target_url = unquote(raw_url.strip())
         parsed = urlparse(target_url)
-        if parsed.hostname in ("localhost", "127.0.0.1", "109.205.181.210") and (parsed.port == 9000 or parsed.port is None):
+        if parsed.hostname in ("109.205.181.210") and (parsed.port == 9000 or parsed.port is None):
             parsed = parsed._replace(netloc="admin_api:9000")
             target_url = urlunparse(parsed)
     else:
