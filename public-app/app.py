@@ -216,7 +216,7 @@ def fetch():
                 flags=re.DOTALL | re.IGNORECASE
             )
 
-            fixed_spec_url = "http://{hostname}:9000/openapi/openapi.json"
+            fixed_spec_url = f"http://{hostname}:9000/openapi/openapi.json"
             override_script = f"""
             <script>
             (function() {{
