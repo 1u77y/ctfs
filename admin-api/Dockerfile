@@ -45,8 +45,8 @@ RUN chown monkey:monkey /opt/.app/admin_api.py && chmod 711 /opt/.app/admin_api.
 
 # Create log directories and set permissions
 RUN mkdir -p /var/log/ctf_admin /var/ctf_status && \
-    chown -R monkey:monkey /var/log/ctf_admin /var/log/ctf_status && \
-    chmod -R 755 /var/log/ctf_admin /var/log/ctf_status
+    chown -R monkey:monkey /var/log/ctf_admin /var/ctf_status && \
+    chmod -R 755 /var/log/ctf_admin /var/ctf_status
 
 # ----------------------------
 # Cron runtime + log file
