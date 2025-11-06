@@ -97,7 +97,7 @@ def feedback():
     except Exception:
         return jsonify({"error": "Could not write feedback"}), 500
 
-    return redirect("")
+    return redirect("/")
 
 
 @app.route("/status")
