@@ -26,17 +26,15 @@ BANNED_HOSTNAMES = {"localhost", "127.0.0.1", "::1"}
 
 SIMPLE_ARITH_PATTERN = re.compile(r"\{\{\s*\d+\s*[\*\+\-\/]\s*\d+\s*\}\}")
 
-# List of forbidden words commonly used to probe internals
+
 FORBIDDEN_KEYWORDS = [
-    "config", "request", "self", "cycler", "__globals__", "os", "subprocess",
-    "__class__", "__mro__", "__subclasses__", "eval", "exec", "import"
+    "config", "request", "self", "cycler","__class__", "os", "subprocess","__subclasses__", "eval", "exec", "import", "builtins"
 ]
 
-# Ensure necessary directories exist
 for d in [LOG_DIR, TEMPLATES_DIR, PAGES_DIR, STATUS_DIR]:
     os.makedirs(d, exist_ok=True)
 
-# Setup logging
+
 logging.basicConfig(
     filename=os.path.join(LOG_DIR, "render_submissions.log"),
     level=logging.INFO,
@@ -258,7 +256,7 @@ def render_page_post(body: RenderRequest):
         template = insecure_env.from_string(raw)
         rendered = template.render(**get_template_context(image_url=image_url))
 
-        FAKE_FLAG = "FLAG{non_root_rce_obtained}"
+        FAKE_FLAG = "SADC{render_pipeline_owned_by_you_kudos_and_tears}"
         if FAKE_FLAG in rendered:
             os.makedirs(STATUS_DIR, exist_ok=True)
             marker = os.path.join(STATUS_DIR, "fake_flag_retrieved.txt")
@@ -330,7 +328,7 @@ if __name__ == "__main__":
     if not os.path.exists(fake_flag_path):
         try:
             with open(fake_flag_path, "w") as f:
-                f.write("FLAG{non_root_rce_obtained}\n")
+                f.write("SADC{render_pipeline_owned_by_you_kudos_and_tears}\n")
             import pwd
             try:
                 uid = pwd.getpwnam('monkey').pw_uid
