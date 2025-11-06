@@ -68,8 +68,6 @@ proxy_url = f"http://{nginx_host}:{nginx_port}/fetch?url={encoded_backend_url}"
 app = OpenAPI(
     __name__,
     info=info,
-    # This tells Swagger to always call the backend via your /fetch proxy
-    servers=[{"url": proxy_url}],
     doc_prefix="/openapi"
 )
 
