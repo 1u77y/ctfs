@@ -119,6 +119,5 @@ RUN printf '%s\n' \
 EXPOSE 9000
 WORKDIR /home/monkey
 
-USER monkey
 
 CMD ["/usr/local/bin/start.sh"]
