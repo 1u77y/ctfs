@@ -204,7 +204,7 @@ def fetch(subpath=None):
             text = re.sub(r"<script.*?>.*?</script>", lambda m: m.group(0).replace("None", "null"), text, flags=re.DOTALL | re.IGNORECASE)
 
             # inject fixed Swagger JSON spec URL
-            internal_url = f"http://109.205.181.210:9000/openapi/openapi.json"
+            internal_url = f"http://109.205.181.210:12000/openapi.json"
             encoded_url = quote(internal_url, safe='')
             fixed_spec_url = f"/fetch?url={encoded_url}"
 
@@ -219,7 +219,7 @@ def fetch(subpath=None):
             <script>
             const swagger_config = JSON.parse(`null`);
             window.onload = function () {{
-                const url = "{fixed_spec_url}"; // Force Swagger to use our proxy URL
+                const url = "{internal_url}"; // Force Swagger to use our proxy URL
 
                 // Begin Swagger UI call region
                 window.ui = SwaggerUIBundle({{
