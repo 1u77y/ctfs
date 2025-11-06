@@ -25,7 +25,7 @@ RUN chown monkey:monkey /opt/.app/admin_api.py && chmod 711 /opt/.app/admin_api.
 # Create log directories and set permissions
 RUN mkdir -p /var/log/ctf_admin /var/ctf_status && \
     chown -R monkey:monkey /var/log/ctf_admin /var/ctf_status && \
-    chmod -R 755 /var/log/ctf_admin /var/ctf_status
+    chmod -R 755 /var/log/ctf_admin /var/log/ctf_status
 
 # ----------------------------
 # Cron runtime + log file
@@ -34,23 +34,30 @@ RUN mkdir -p /var/run && chmod 755 /var/run
 RUN touch /var/log/cron.log && chmod 666 /var/log/cron.log
 
 # ----------------------------
-# Create shelldon user (flag owner)
+# Create shelldon user (flag owner) and dedicated flag group
 # ----------------------------
-RUN useradd -m -s /bin/bash shelldon && \
-    mkdir -p /home/shelldon && \
+RUN useradd -m -s /bin/bash shelldon
+
+# create a dedicated group for the flag and add shelldon to it
+RUN addgroup flaggroup && \
+    adduser shelldon flaggroup
+
+# create the flag file owned by shelldon:flaggroup and restrict access
+RUN mkdir -p /home/shelldon && \
     echo "SADC{chained_exploit_ssrf_ssti_rce_lpe}" > /home/shelldon/flag.txt && \
-    chown shelldon:shelldon /home/shelldon/flag.txt && \
+    chown shelldon:flaggroup /home/shelldon/flag.txt && \
+    # read only by owner and group (change to 400 to make owner-only)
     chmod 440 /home/shelldon/flag.txt && \
     chmod 700 /home/shelldon
 
 # ----------------------------
-# Create ctfgroup and add users
+# Create ctfgroup (for other game roles) and add users but NOT add monkey to flaggroup
 # ----------------------------
 RUN addgroup ctfgroup && \
     adduser monkey ctfgroup && \
-    adduser shelldon ctfgroup && \
-    chgrp ctfgroup /home/shelldon/flag.txt && \
-    chmod 440 /home/shelldon/flag.txt
+    # keep shelldon in flaggroup; do NOT add monkey to flaggroup
+    # adduser shelldon ctfgroup    # (optional) if you want shelldon also in ctfgroup, uncomment
+    true
 
 # ----------------------------
 # Hidden directory for escalation
@@ -124,16 +131,3 @@ EXPOSE 9000
 WORKDIR /home/monkey
 
 CMD ["/usr/local/bin/start.sh"]
-
-# ----------------------------
-# Restrict monkey from reading the flag file
-# ----------------------------
-
-# Remove read access for 'monkey' from the flag file
-RUN setfacl -m u:monkey:--- /home/shelldon/flag.txt
-
-# Set additional restrictive permissions on the flag file
-RUN chmod 440 /home/shelldon/flag.txt
-
-# Ensure that monkey cannot read the flag.txt file directly
-RUN chmod o-r /home/shelldon/flag.txt
