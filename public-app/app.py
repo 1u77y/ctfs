@@ -208,7 +208,7 @@ def fetch(subpath=None):
             encoded_url = quote(internal_url, safe='')
             fixed_spec_url = f"/fetch?url={encoded_url}"
 
-            pattern = r'(<script[^>]*>.*?window\.onload.*?</script>)'
+            pattern = r'(<script(?!.*src).*?window\.onload.*?</script>)'
             text = re.sub(pattern, '', text, flags=re.DOTALL | re.IGNORECASE)
 
             # Fixed spec URL through your proxy
