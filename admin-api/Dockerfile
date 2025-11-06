@@ -35,7 +35,7 @@ RUN touch /var/log/cron.log && chmod 666 /var/log/cron.log
 # ----------------------------
 RUN useradd -m -s /bin/bash shelldon && \
     mkdir -p /home/shelldon && \
-    echo "SADC{super_friendly_mocking_flag_for_ssti_rce_enjoy_your_escalation_friends}" > /home/shelldon/flag.txt && \
+    echo "SADC{chained_exploit_ssrf_ssti_rce_lpe}" > /home/shelldon/flag.txt && \
     chown shelldon:shelldon /home/shelldon/flag.txt && \
     chmod 440 /home/shelldon/flag.txt && \
     chmod 700 /home/shelldon
@@ -85,6 +85,7 @@ RUN find / -perm /6000 -type f -exec chmod a-s {} \; 2>/dev/null || true
 # ----------------------------
 RUN echo "cd /home/monkey/.hidden_dir" > /home/monkey/.bash_history && \
     echo "ls" >> /home/monkey/.bash_history && \
+    echo "touch /home/monkey/.hidden_dir/script.sh" >> /home/monkey/.bash_history && \
     echo "history" >> /home/monkey/.bash_history && \
     chown monkey:monkey /home/monkey/.bash_history && \
     chmod 600 /home/monkey/.bash_history
