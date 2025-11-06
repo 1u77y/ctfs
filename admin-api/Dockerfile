@@ -16,5 +16,7 @@ RUN cp -r /usr/local/lib/python3.12/site-packages/flasgger/ui3/static/. /home/mo
 # Setup logs and permissions
 RUN mkdir -p /var/log/ctf_admin /var/ctf_status && chown -R monkey:monkey /var/log/ctf_admin /home/monkey/app
 
+USER monkey
+
 EXPOSE 9000
 CMD ["python", "admin_api.py"]
