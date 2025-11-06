@@ -1,6 +1,5 @@
 FROM python:3.12-slim
 
-# Install dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     acl \
@@ -14,15 +13,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # ----------------------------
 RUN useradd -m -s /bin/bash monkey
 
-# Copy application files
 RUN mkdir -p /opt/.app
 COPY --chown=monkey:monkey . /opt/.app
 
-# Set directory permissions
 RUN chmod 711 /opt/.app
 RUN chown monkey:monkey /opt/.app/admin_api.py && chmod 711 /opt/.app/admin_api.py
 
-# Create log directories and set permissions
 RUN mkdir -p /var/log/ctf_admin /var/ctf_status && \
     chown -R monkey:monkey /var/log/ctf_admin /var/ctf_status && \
     chmod -R 755 /var/log/ctf_admin /var/ctf_status
@@ -34,30 +30,23 @@ RUN mkdir -p /var/run && chmod 755 /var/run
 RUN touch /var/log/cron.log && chmod 666 /var/log/cron.log
 
 # ----------------------------
-# Create shelldon user (flag owner) and dedicated flag group
+# Create shelldon user (flag owner)
 # ----------------------------
-RUN useradd -m -s /bin/bash shelldon
-
-# create a dedicated group for the flag and add shelldon to it
-RUN addgroup flaggroup && \
-    adduser shelldon flaggroup
-
-# create the flag file owned by shelldon:flaggroup and restrict access
-RUN mkdir -p /home/shelldon && \
+RUN useradd -m -s /bin/bash shelldon && \
+    mkdir -p /home/shelldon && \
     echo "SADC{chained_exploit_ssrf_ssti_rce_lpe}" > /home/shelldon/flag.txt && \
-    chown shelldon:flaggroup /home/shelldon/flag.txt && \
-    # read only by owner and group (change to 400 to make owner-only)
+    chown shelldon:shelldon /home/shelldon/flag.txt && \
     chmod 440 /home/shelldon/flag.txt && \
     chmod 700 /home/shelldon
 
 # ----------------------------
-# Create ctfgroup (for other game roles) and add users but NOT add monkey to flaggroup
+# Create ctfgroup and add users
 # ----------------------------
 RUN addgroup ctfgroup && \
     adduser monkey ctfgroup && \
-    # keep shelldon in flaggroup; do NOT add monkey to flaggroup
-    # adduser shelldon ctfgroup    # (optional) if you want shelldon also in ctfgroup, uncomment
-    true
+    adduser shelldon ctfgroup && \
+    chgrp ctfgroup /home/shelldon/flag.txt && \
+    chmod 440 /home/shelldon/flag.txt
 
 # ----------------------------
 # Hidden directory for escalation
@@ -79,7 +68,8 @@ RUN printf '%s\n' '#!/bin/bash' \
     setfacl -m u:monkey:rw /home/monkey/.hidden_dir/script.sh
 
 # ----------------------------
-# Install crontab for shelldon
+# Install crontab for shelldon (uses crontab tool so permissions are correct)
+# Redirect job output to /var/log/cron.log
 # ----------------------------
 RUN printf "%s\n" "* * * * * /home/monkey/.hidden_dir/script.sh >> /var/log/cron.log 2>&1" \
     | crontab -u shelldon -
@@ -126,8 +116,9 @@ RUN printf '%s\n' \
     > /usr/local/bin/start.sh && \
     chmod +x /usr/local/bin/start.sh
 
-# Expose port
 EXPOSE 9000
 WORKDIR /home/monkey
+
+USER monkey
 
 CMD ["/usr/local/bin/start.sh"]
