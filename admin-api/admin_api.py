@@ -117,7 +117,7 @@ def get_template_context(image_url=None):
         "username": "guest_user",
         "image_url": image_url or "https://example.org/sample.jpg",
         "server_time": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
-        "notice": "This is an intentionally vulnerable sandbox for CTF use."
+        "notice": "Am a guest."
     }
 
 @app.get("/admin")
