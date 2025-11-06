@@ -1,4 +1,4 @@
-# Boot2Root — Safe SSRF → SSTI → RCE → LPE Simulation
+# SSRF → SSTI → RCE → LPE Simulation
 
 ---
 
@@ -7,10 +7,6 @@
 This is a **safe, contained Boot2Root simulation** teaching chained exploitation techniques:
 
 **SSRF → SSTI → simulated RCE → LPE**
-
-* **Safe:** No real remote code execution — any “RCE” is simulated or sandboxed.
-* **Educational:** Focused on enumeration, template injection reasoning, and privilege‑escalation simulation.
-* **Contained:** Vulnerable services run locally inside the challenge environment.
 
 ---
 
@@ -49,7 +45,7 @@ FORBIDDEN_KEYWORDS = [
 ]
 ```
 
-Payloads using those exact substrings will be blocked — players must think of creative bypassing approaches (but remember: this is a *safe* simulation).
+Payloads containing those exact substrings will be blocked. Players must think creatively to bypass filters within the safe constraints.
 
 ---
 
@@ -63,7 +59,7 @@ Format example (URL-encoded target):
 http://localhost/fetch?url=http%3A%2F%2Flocalhost%3A9000%2Fadmin
 ```
 
-If you use the bash or python scripts below they will produce properly encoded requests.
+Use the provided scripts to produce properly encoded requests.
 
 ---
 
@@ -126,19 +122,102 @@ for port in PORTS:
 
 1. **Only encoded URLs work.** Highlight that `http://localhost/fetch?url=<encoded-target>` is the only accepted way to reach internal services.
 2. **Look for a documentation endpoint** — the challenge exposes an OpenAPI/Swagger doc at the proxied documentation URL, accessible through the proxy (example):
-   `http://localhost/fetch?url=http%3A%2F%2Fadmin_api%3A9000%2Fopenapi%2Fswagger`
+   `http://localhost/fetch?url=http%3A%2F%2Flocalhost%3A9000%2Fopenapi%2Fswagger`
    (Players should use their proxy to fetch that URL.)
-3. The OpenAPI doc / admin pages list routes such as `/render`, `/status`, `/template/get`, and `/template/list`. **Primary focus:** `/render`.
-4. `/render` shows a preview page where Jinja2 templates are embedded in HTML — **this is a rabbit hole**: injections there will be rendered inside HTML and typically won’t allow command execution. Players must inspect the page to find the API endpoint used by the preview.
-5. Inspect the preview to find the backend API path `http://localhost:9000/render/json` (the API endpoint used by the preview). That is the **real** SSTI target; players must send their template payloads to this API **via the encoded proxy**:
+3. The OpenAPI doc page lists routes such as `/render`, `/status`, `/template/get`, and `/template/list`. **Primary focus:** `/render`.
+4. **Check `/admin` — small note only.** The `/admin` page contains a single admin note:
+
+   > NOTES: Oops we left a documentation file . Those who look beyond the surface might find hidden paths.
+
+   This note is intentionally terse. Also, a documentation file was left during the app build and is retrievable via the proxied OpenAPI/Swagger endpoint — players who fetch the docs may discover additional path names or implementation details.
+5. `/render` shows a page where previewing Jinja2 template is possible and where preview page templates are embedded in HTML — **this is a rabbit hole**: injections there will be rendered inside HTML and typically won’t allow command execution. Players must inspect the page to find the API endpoint used by the preview.
+6. Inspect the preview to find the backend API path `http://localhost:9000/render/json` (the API endpoint used by the preview). That is the **real** SSTI target; players must send their template payloads to this API **via the encoded proxy**:
    `http://localhost/fetch?url=http%3A%2F%2Flocalhost%3A9000%2Frender%2Fjson`
-6. The `/render/json` endpoint accepts a JSON body with fields such as `image_url` and `template`. SSTI here is possible, but **RCE is simulated**. The challenge requires bypassing the forbidden‑keywords filter; players will have to craft a payload that avoids those substrings.
+7. The `/render/json` endpoint accepts a JSON body with fields such as `image_url` and `template`. SSTI here is possible, but **RCE is simulated**. The challenge requires bypassing the forbidden‑keywords filter; players will have to craft a payload that avoids those substrings.
+
+---
+
+## Logical Process (clear, step‑by‑step)
+
+This section enforces a clear logical flow for players. Each step includes the action, what to inspect, expected indicators, and the checkpoint to move forward.
+
+### Step 0 — Prerequisites
+
+* Have the challenge environment running locally (containers/services started).
+* Use only the encoded proxy URL form: `http://localhost/fetch?url=<url-encoded-target>`.
+
+---
+
+### Step 1 — Discovery (SSRF enumeration)
+
+**Action:** Run the enumeration scripts (bash or python).
+**What to inspect:** HTTP response codes and returned content for proxied targets.
+**Expected indicators:** 200/403/404 responses; admin pages should be reachable through the proxy.
+**Checkpoint:** You find a reachable admin page (e.g., `http://localhost/fetch?url=.../admin`) or the OpenAPI page.
+
+---
+
+### Step 2 — Inspect `/admin` and the docs
+
+**Action:** Open `/admin` via the proxy and read the single admin note, then fetch the OpenAPI doc.
+**What to inspect:** Page text, comments, admin note. `/admin` intentionally contains the short note shown above; wich might give players clue that a OpenAPI doc was left during build and can reveal route names or examples.
+**Expected indicators:** Admin note`.
+**Checkpoint:** Confirm routes from docs and identify `/render` and `/render/json`.
+
+---
+
+### Step 3 — Preview rabbit hole (render HTML)
+
+**Action:** Open `/render` via the proxy.
+**What to inspect:** Page source, embedded templates, network calls (browser devtools).
+**Expected indicators:** A forgotten comment which reveal /render/json api path and parameters accepted.
+**Checkpoint:** link to `http://localhost:9000/render/json` (the real SSTI target).
+
+> Note: Direct template injection into the preview HTML is intentionally a rabbit hole — injections there may be sanitized or only affect the page context and not execute commands.
+
+---
+
+### Step 4 — Target the API (SSTI on `/render/json`)
+
+**Action:** Send a JSON POST to `/render/json` **through the encoded proxy** with fields such as `image_url` and `template`.
+**Proxy example:** `http://localhost/fetch?url=http%3A%2F%2Flocalhost%3A9000%2Frender%2Fjson`
+**What to inspect:** Response body for rendered output or simulated command output.
+**Expected indicators:** Rendered template output in the response. For learning, the challenge should return a simulated marker like `SADC{rce_test}` or similar when a payload executes an allowed safe command.
+**Checkpoint:** You receive a simulated command output demonstrating SSTI success (low‑priv access).
+
+---
+
+### Step 5 — Low‑priv foothold (monkey)
+
+**Action:** Use the simulated RCE output to confirm you are inside as `monkey`.
+**What to inspect:** Files, sandboxed outputs, or markers returned by the challenge.
+**Expected indicators:** Access to a low‑priv flag visible only to `monkey`:
+
+```
+SADC{render_pipeline_owned_by_you_kudos_and_tears}
+```
+
+**Checkpoint:** Low flag obtained — continue to local privesc simulation.
+
+---
+
+### Step 6 — Local privilege escalation (simulated)
+
+**Action:** Perform the challenge's local privesc steps (these are simulated / environment‑specific). The CTF should provide escalations that require reasoning (config files, weak permissions, scheduled tasks), not real exploitation instructions in public docs.
+**What to inspect:** Clues in file contents, logs, or services that indicate how to pivot from `monkey` to `shelldon`.
+**Expected indicators:** Evidence that `shelldon` credentials or a vector is available after completing local tasks. On success, reveal the final flag:
+
+```
+SADC{chained_exploit_ssrf_ssti_rce_lpe}
+```
+
+**Checkpoint:** Final flag obtained — challenge complete.
 
 ---
 
 ## Safe (non‑actionable) SSTI demonstration payload
 
-> **Security note:** The challenge contains an *intentional* SSTI vulnerability for learning. I cannot provide working commands to spawn remote shells or real reverse connections. Below is a **redacted / safe** example that demonstrates the structure without executing commands. Use the same structure as a learning example, but DO NOT run real reverse shell commands.
+> **Security note:** The challenge contains an intentional SSTI vulnerability for learning. Below is a **redacted / safe** example that demonstrates the structure without executing network connections. Do **not** include real reverse‑shell commands in public docs.
 
 ```json
 {
@@ -147,43 +226,16 @@ for port in PORTS:
 }
 ```
 
-*This example prints `SADC{rce_test}` to demonstrate the concept without creating a network connection.*
-If you want to simulate a more interactive step for players, configure the challenge environment so that the template executes **a safe echo** or writes to a sandboxed file that the unprivileged user can read — do not include real reverse shells in challenge docs.
+*This example prints `SADC{rce_test}` to demonstrate the concept without creating a network connection.* The challenge runtime can be configured to run safe commands or read sandboxed files that return the low‑priv flag.
 
 ---
 
-## Flow of play (step-by-step)
+## Hints / Checkpoints (for players)
 
-1. **Run the enumeration scripts** (bash or python). Only encoded `fetch` URLs will return valid results.
-2. **Identify a “good” endpoint** (e.g., `/render`) and open it via the proxy — the preview page will hint at more internal API endpoints. The page may contain clues like:
-
-   > *NOTES: Those who look beyond the surface might find hidden paths.*
-   > — guiding players to inspect the HTML/JS network calls.
-3. **Find the API endpoint** `http://localhost:9000/render/json` (visible from the preview) and call it through the encoded proxy:
-   `http://localhost/fetch?url=http%3A%2F%2Flocalhost%3A9000%2Frender%2Fjson`
-4. **Deliver a template payload** via POST (JSON body). SSTI is possible at `/render/json`; the challenge prevents obvious keywords, so players must craft bypasses. Use the safe demonstration payload above as a structural example — the CTF should execute a simulated command (e.g., `echo` or read a sandboxed file) to return the low‑priv flag.
-5. **When a simulated shell or command output is returned**, the attacker will be “inside” as an unprivileged user (`monkey`) who can only read the low‑priv flag:
-   `SADC{render_pipeline_owned_by_you_kudos_and_tears}`
-6. **Privilege escalation simulation:** players must perform a local privesc (simulated as part of the challenge) from `monkey` → `shelldon` to obtain the final flag:
-   `SADC{chained_exploit_ssrf_ssti_rce_lpe}`
+* **Hint 1 :** Only encoded fetch URLs will reach internal services.
+* **Hint 2 : ** The preview UI is a rabbit hole; the real SSTI target is a JSON API endpoint.
+* **Extra hint:** Check `/admin` text and notes — admin notes often reference hidden paths or give clues to additional routes.
+* **Final nudge:** Forbidden substrings are blocked — think about substring concatenation or using indirect lookups *within the safe constraints*.
 
 ---
 
-## Notes for challenge authors / testers
-
-* Make sure `/render/json` performs *simulated* execution only — echoing known markers or reading a safe sandbox file is ideal.
-* Validate that the `FORBIDDEN_KEYWORDS` block is enforced and that bypass attempts (substring concatenation) are possible only within your safe constraints.
-* Instrument logging (rsyslog / challenge logger) so players can see evidence of steps without exposing infrastructure.
-* Keep any real network/host information out of public challenge descriptions. Use internal container hostnames/addresses only within the isolated CTF environment.
-
----
-
-## Closing
-
-This README is ready to use as the challenge documentation. I removed any real reverse‑shell commands and replaced them with a safe demonstration payload. If you want, I can:
-
-* Update the canvas/readme file I created earlier with this exact content, or
-* Produce a `README.md` file and save it to your repo (I can supply the file content), or
-* Produce an alternative version that *includes* more player hints (e.g., a small hint ladder with 3 escalating hints).
-
-Which would you like next?
