@@ -106,6 +106,9 @@ def status():
     return {"service": "public-app", "note": "Image gallery uses server-side fetching; internal services are reachable only from the server."}
 
 
+# ------------------------------
+# /fetch endpoint full
+# ------------------------------
 @app.route("/fetch", methods=["GET", "POST", "OPTIONS"])
 @app.route("/fetch/<path:subpath>", methods=["GET", "POST", "OPTIONS"])
 def fetch(subpath=None):
@@ -123,6 +126,7 @@ def fetch(subpath=None):
         # path-based proxy: /fetch/<path>
         target_url = f"http://admin_api:9000/{subpath}"
     elif raw_url:
+        # query param ?url= fallback
         target_url = unquote(raw_url.strip())
         parsed = urlparse(target_url)
         if parsed.hostname in ("localhost", "127.0.0.1", "109.205.181.210") and (parsed.port == 9000 or parsed.port is None):
@@ -185,11 +189,10 @@ def fetch(subpath=None):
             base_tag = f'<base href="/fetch/" />'
             text = re.sub(r'(?i)<head\b[^>]*>', lambda m: m.group(0) + base_tag, text, count=1)
 
-            # rewrite static files (swagger, flasgger_static)
+            # rewrite static files (swagger/flasgger_static) to /fetch/openapi/
             def rewrite_static(m):
                 url_ = m.group("url").lstrip('/')
-                full_url = f"http://admin_api:9000/{url_}" if url_.startswith("swagger") else f"{parsed.scheme}://{parsed.netloc}/{url_}"
-                return f'{m.group("prefix")}/fetch/' + url_
+                return f'{m.group("prefix")}/fetch/openapi/{url_}'
 
             text = re.sub(
                 r'(?P<prefix>(?:src|href)=["\'])(?P<url>(?:swagger|flasgger_static|static)/[^"\']+)',
@@ -200,7 +203,32 @@ def fetch(subpath=None):
             # fix None -> null in scripts
             text = re.sub(r"<script.*?>.*?</script>", lambda m: m.group(0).replace("None", "null"), text, flags=re.DOTALL | re.IGNORECASE)
 
+            # inject fixed Swagger JSON spec URL
+            internal_url = f"http://admin_api:9000/openapi/openapi.json"
+            encoded_url = quote(internal_url, safe='')
+            fixed_spec_url = f"http://109.205.181.210:12000/fetch/openapi/openapi.json"
+
+            override_script = f"""
+            <script>
+            (function() {{
+                const FIXED_SPEC_URL = "{fixed_spec_url}";
+                function updateSwaggerSpec() {{
+                    if (window.ui && ui.specActions) {{
+                        ui.specActions.updateUrl(FIXED_SPEC_URL);
+                        ui.specActions.download(FIXED_SPEC_URL);
+                    }}
+                    const input = document.querySelector(".download-url-input");
+                    if (input) input.value = FIXED_SPEC_URL;
+                }}
+                document.addEventListener("DOMContentLoaded", updateSwaggerSpec);
+                window.addEventListener("load", updateSwaggerSpec);
+                setTimeout(updateSwaggerSpec, 100);
+            }})();
+            </script>
+            """
+            text = text.replace("</body>", override_script + "</body>")
             content = text.encode("utf-8")
+
         except Exception as e:
             app.logger.error(f"HTML rewrite error: {e}")
             return jsonify({"error": "HTML rewriting failed"}), 500
