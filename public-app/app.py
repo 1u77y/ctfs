@@ -211,14 +211,14 @@ def fetch(subpath=None):
             text = re.sub(r'<script.*?>.*?</script>', '', text, flags=re.DOTALL | re.IGNORECASE)
 
             # Fixed spec URL through your proxy
-            fixed_spec_url = "/fetch?url={encoded_url}"
+            fixed_spec_url = f"/fetch?url={encoded_url}"
 
             # Custom Swagger initialization script
             custom_swagger_script = f"""
             <script>
             const swagger_config = JSON.parse(`null`);
             window.onload = function () {{
-                const url = f"{fixed_spec_url}"; // Force Swagger to use our proxy URL
+                const url = "{fixed_spec_url}"; // Force Swagger to use our proxy URL
 
                 // Begin Swagger UI call region
                 window.ui = SwaggerUIBundle({{
