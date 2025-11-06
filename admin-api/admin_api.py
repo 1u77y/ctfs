@@ -8,17 +8,11 @@ from urllib.parse import urlparse
 from jinja2.sandbox import SandboxedEnvironment
 from flask_openapi3 import OpenAPI, Info, Tag
 
-# =============================================================================
-# WARNING: This application intentionally uses an INSECURE sandbox environment
-# (InsecureSandbox) that disables Jinja2 sandbox attribute/call checks to make
-# SSTI exploitation possible for CTF players. DO NOT run this outside an
-# isolated, ephemeral CTF environment. You have been warned.
-# =============================================================================
 
 # --- Configuration ---
 APP_ROOT = os.path.dirname(os.path.abspath(__file__))
-TEMPLATES_DIR = os.path.join(APP_ROOT, "templates")    # example Jinja files for players
-PAGES_DIR = os.path.join(APP_ROOT, "pages")            # HTML pages served by GET
+TEMPLATES_DIR = os.path.join(APP_ROOT, "templates")    
+PAGES_DIR = os.path.join(APP_ROOT, "pages")            
 LOG_DIR = "/var/log/ctf_admin"
 STATUS_DIR = "/var/ctf_status"
 
@@ -26,7 +20,7 @@ STATUS_DIR = "/var/ctf_status"
 MAX_TPL_BYTES = 64 * 1024  # 64 KiB
 LOG_TRUNCATE = 2000
 ALLOWED_IMAGE_SCHEMES = ("http", "https")
-# keep localhost banned for image fetching by default; adjust for challenge as needed
+
 BANNED_HOSTNAMES = ("localhost", "127.0.0.1", "::1")
 
 # ensure directories exist
@@ -42,11 +36,14 @@ logging.basicConfig(
     format="%(asctime)s %(message)s"
 )
 
-# === OpenAPI / App setup ===
 info = Info(
-    title="Admin API (CTF)",
+    title="Endpoints",
     version="1.0.0",
-    description="Admin API used for CTF template previewing. This service runs as non-root."
+    description=(
+        "This service was left in a "
+        "development state — internal endpoints may be exposed. Accessible only via the "
+        "training environment; do not use in production."
+    )
 )
 
 # serve docs under /openapi (UI) and /openapi/openapi.json (raw spec)
@@ -112,7 +109,7 @@ def admin():
     return jsonify({
         "service": "admin",
         "version": "1.0.0",
-        "notes": "Find internal routes."
+        "notes": "Those who look beyond the surface might find hidden paths. Try Harder"
     })
 
 
