@@ -56,18 +56,19 @@ backend_port = 9000
 nginx_host = "109.205.181.210"
 nginx_port = 12000
 
-# Endpoint complet du backend OpenAPI
 backend_url = f"http://{backend_host}:{backend_port}/openapi/openapi.json"
 
 # Encoder l'URL complète pour passer dans query string
-encoded_url = quote(backend_url, safe='')
+encoded_backend_url = quote(backend_url, safe='')
 
 # Construire l'URL finale via le proxy /fetch
-proxy_url = f"http://{nginx_host}:{nginx_port}"
+proxy_url = f"http://{nginx_host}:{nginx_port}/fetch?url={encoded_backend_url}"
 
+# Configure OpenAPI / Swagger UI
 app = OpenAPI(
     __name__,
     info=info,
+    # This tells Swagger to always call the backend via your /fetch proxy
     servers=[{"url": proxy_url}],
     doc_prefix="/openapi"
 )
