@@ -1,4 +1,4 @@
-from flask import Flask, request, abort, Response, render_template, send_from_directory, redirect, jsonify
+from flask import Flask, request, abort, Response, render_template, send_from_directory, redirect, jsonify, abort
 from urllib.parse import urlparse, urlunparse, quote, unquote
 import socket
 import ipaddress
@@ -154,7 +154,7 @@ def fetch(subpath=None):
     resolved_ips = resolve_hostname(hostname)
     ips_allowed = all(is_ip_allowed(ip) for ip in resolved_ips) if resolved_ips else False
     if hostname not in ALLOWED_HOSTNAMES and not ips_allowed:
-        return jsonify({"error": "Host not allowed"}), 403
+        abort(404)
 
     # -------------------- Debug --------------------
     app.logger.info(f"Fetch headers: {dict(request.headers)}")
