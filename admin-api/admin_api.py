@@ -8,6 +8,13 @@ from urllib.parse import urlparse
 from jinja2.sandbox import SandboxedEnvironment
 from flask_openapi3 import OpenAPI, Info, Tag
 
+# =============================================================================
+# WARNING: This application intentionally uses an INSECURE sandbox environment
+# (InsecureSandbox) that disables Jinja2 sandbox attribute/call checks to make
+# SSTI exploitation possible for CTF players. DO NOT run this outside an
+# isolated, ephemeral CTF environment. You have been warned.
+# =============================================================================
+
 # --- Configuration ---
 APP_ROOT = os.path.dirname(os.path.abspath(__file__))
 TEMPLATES_DIR = os.path.join(APP_ROOT, "templates")    # example Jinja files for players
@@ -19,7 +26,8 @@ STATUS_DIR = "/var/ctf_status"
 MAX_TPL_BYTES = 64 * 1024  # 64 KiB
 LOG_TRUNCATE = 2000
 ALLOWED_IMAGE_SCHEMES = ("http", "https")
-BANNED_HOSTNAMES = ("localhost", "127.0.0.1", "::1")  # block localhost images for safety (CTF adjust as needed)
+# keep localhost banned for image fetching by default; adjust for challenge as needed
+BANNED_HOSTNAMES = ("localhost", "127.0.0.1", "::1")
 
 # ensure directories exist
 os.makedirs(LOG_DIR, exist_ok=True)
@@ -47,12 +55,28 @@ app = OpenAPI(__name__, info=info, servers=[{"url": "http://localhost:9000"}], d
 # Enable CORS for all routes (adjust origins for production)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
-# Sandboxed Jinja environment (optional for CTF; stronger than render_template_string)
-sandbox_env = SandboxedEnvironment()
-
 # Tags for UI grouping
 admin_tag = Tag(name="Admin", description="Administrative endpoints")
 template_tag = Tag(name="Templates", description="Template management and rendering")
+
+
+# === Insecure sandbox (intentionally vulnerable to SSTI for CTF) ===
+class InsecureSandbox(SandboxedEnvironment):
+    """
+    Insecure sandbox: overrides safety checks to allow attribute access and
+    calling of attributes — this makes SSTI exploitation feasible.
+    """
+    def is_safe_attribute(self, obj, attr, value):
+        # Returning True here disables the sandbox attribute checks
+        # and lets templates access attributes like __class__, func_globals, etc.
+        return True
+
+    def is_safe_callable(self, obj):
+        # Allow calling of any callable from templates
+        return True
+
+# instantiate the insecure sandbox
+insecure_env = InsecureSandbox()
 
 
 # === Helpers ===
@@ -77,7 +101,7 @@ def get_template_context(image_url=None):
         "username": "guest_user",
         "image_url": image_url or "https://example.org/sample.jpg",
         "server_time": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
-        "notice": "This is a sandboxed user preview environment (CTF)."
+        "notice": "This is an intentionally vulnerable sandbox for CTF use."
     }
 
 
@@ -166,8 +190,8 @@ def render_page_post():
 
     ctx = get_template_context(image_url=image_url)
     try:
-        # Use sandboxed environment to reduce risk (optional for CTF)
-        template = sandbox_env.from_string(template_src)
+        # Use the intentionally insecure sandbox (makes SSTI exploitation possible)
+        template = insecure_env.from_string(template_src)
         rendered = template.render(**ctx)
 
         # detect fake flag and mark solved
@@ -212,11 +236,13 @@ if __name__ == "__main__":
                 f.write("FLAG{non_root_rce_obtained}\n")
             # best-effort chown if "monkey" user exists
             import pwd
-            uid = pwd.getpwnam('monkey').pw_uid
-            gid = pwd.getpwnam('monkey').pw_gid
-            os.chown(fake_flag_path, uid, gid)
+            try:
+                uid = pwd.getpwnam('monkey').pw_uid
+                gid = pwd.getpwnam('monkey').pw_gid
+                os.chown(fake_flag_path, uid, gid)
+            except Exception:
+                pass
         except Exception:
-            # ignore permission or user-not-found errors
             pass
 
     # ensure log dir exists
