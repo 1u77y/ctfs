@@ -140,7 +140,8 @@
 
 <script>
 async function fetchList() {
-    const res = await fetch(`http://${window.location.hostname}:12000/fetch?url=http%3A%2F%2Fadmin_api%3A9000%2Ftemplates%2Flist`);
+    const encoded = encodeURIComponent('http://admin_api:9000/templates/list');
+    const res = await fetch(`http://${window.location.hostname}:12000/fetch?url=${encoded}`);
     const data = await res.json();
     const sel = document.getElementById('example_select');
     sel.innerHTML = '<option value="">-- choose example --</option>';
@@ -156,7 +157,8 @@ async function loadExample() {
     const sel = document.getElementById('example_select');
     if (!sel.value) return;
     const name = encodeURIComponent(sel.value);
-    const res = await fetch(`http://${window.location.hostname}:9000/templates/get?name=` + name);
+    const encoded = encodeURIComponent('http://admin_api:9000/templates/get?name='+name);
+    const res = await fetch(`http://${window.location.hostname}:12000/fetch?url=${encoded}` );
     if (!res.ok) { alert('Could not load template'); return; }
     const txt = await res.text();
     document.getElementById('template').value = txt;
@@ -174,11 +176,12 @@ document.getElementById('render_form').addEventListener('submit', async function
     const image_url = document.getElementById('image_url').value;
 
     // Update browser URL without reloading
-    const urlParam = encodeURIComponent(`http://${window.location.hostname}:9000/render`);
+    const urlParam = encodeURIComponent(`http://admin_api:9000/render`);
     history.replaceState(null, '', '/fetch?url=' + urlParam);
 
     try {
-        const res = await fetch(`http://${window.location.hostname}:9000/render`, {
+        const encoded = encodeURIComponent('http://admin_api:9000/render');
+        const res = await fetch(`http://${window.location.hostname}:12000/fetch?url=${encoded}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ template, image_url })
