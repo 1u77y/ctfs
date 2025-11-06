@@ -6,7 +6,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     sudo \
     python3-venv \
     cron \
-    procps \
     && rm -rf /var/lib/apt/lists/*
 
 # ----------------------------
