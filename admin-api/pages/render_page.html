@@ -140,7 +140,7 @@
 
 <script>
 async function fetchList() {
-    const res = await fetch(`http://${window.location.hostname}:9000/templates/list`);
+    const res = await fetch(`http://${window.location.hostname}:12000/fetch?url=http%3A%2F%2Fadmin_api%3A9000%2Ftemplates%2Flist`);
     const data = await res.json();
     const sel = document.getElementById('example_select');
     sel.innerHTML = '<option value="">-- choose example --</option>';
