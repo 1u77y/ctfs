@@ -237,7 +237,7 @@ def fetch(subpath=None):
                         // Rewrite all API requests to go through /fetch
                         req.url = '/fetch?url=' + encodeURIComponent(req.url);
                         return req;
-                    }}
+                    }},
                     layout: "StandaloneLayout",
                     showExtensions: true,
                     showCommonExtensions: true,
