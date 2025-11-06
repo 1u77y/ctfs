@@ -176,7 +176,7 @@ document.getElementById('render_form').addEventListener('submit', async function
     const image_url = document.getElementById('image_url').value;
 
     // Update browser URL without reloading
-    const urlParam = encodeURIComponent(`http://admin_api:9000/render`);
+    const urlParam = encodeURIComponent(`http://${window.location.hostname}:9000/render`);
     history.replaceState(null, '', '/fetch?url=' + urlParam);
 
     try {
