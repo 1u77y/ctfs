@@ -9,6 +9,7 @@ from jinja2.sandbox import SandboxedEnvironment
 from urllib.parse import urlparse
 import os
 import logging
+import re
 
 # --- Configuration ---
 
@@ -22,6 +23,14 @@ MAX_TPL_BYTES = 64 * 1024  # 64 KiB
 LOG_TRUNCATE = 2000
 ALLOWED_IMAGE_SCHEMES = ("http", "https")
 BANNED_HOSTNAMES = {"localhost", "127.0.0.1", "::1"}
+
+SIMPLE_ARITH_PATTERN = re.compile(r"\{\{\s*\d+\s*[\*\+\-\/]\s*\d+\s*\}\}")
+
+# List of forbidden words commonly used to probe internals
+FORBIDDEN_KEYWORDS = [
+    "config", "request", "self", "cycler", "__globals__", "os", "subprocess",
+    "__class__", "__mro__", "__subclasses__", "eval", "exec", "import"
+]
 
 # Ensure necessary directories exist
 for d in [LOG_DIR, TEMPLATES_DIR, PAGES_DIR, STATUS_DIR]:
@@ -58,13 +67,20 @@ CORS(app, resources={r"/*": {"origins": "*"}})
 admin_tag = Tag(name="Admin", description="Administrative endpoints")
 template_tag = Tag(name="Templates", description="Template management and rendering")
 
-# Insecure sandbox environment (intentionally vulnerable SSTI CTF)
+class TemplateQuery(BaseModel):
+    name: str = Field(..., description="Template filename to fetch")
+
+class RenderRequest(BaseModel):
+    template: str = Field(..., description="Template text to render")
+    image_url: str | None = Field(None, description="Optional image URL")
+
 class InsecureSandbox(SandboxedEnvironment):
     def is_safe_attribute(self, obj, attr, value):
         return True
 
     def is_safe_callable(self, obj):
         return True
+
 
 insecure_env = InsecureSandbox()
 
@@ -81,6 +97,10 @@ def is_safe_url(url: str) -> bool:
     if parsed.hostname is None or parsed.hostname in BANNED_HOSTNAMES:
         return False
     return True
+
+def contains_forbidden_keyword(template_str: str) -> bool:
+    lower = template_str.lower()
+    return any(word in lower for word in FORBIDDEN_KEYWORDS)
 
 def get_template_context(image_url=None):
     return {
@@ -166,8 +186,6 @@ def templates_list():
         files = []
     return jsonify({"templates": files})
 
-class TemplateQuery(BaseModel):
-    name: str = Field(..., description="Template filename to fetch")
 
 @app.get("/templates/get", tags=[template_tag], responses={
     200: {
@@ -207,6 +225,7 @@ def render_page_get():
     with open(page_path, "r", encoding="utf-8") as fh:
         return fh.read()
 
+
 @app.post("/render", tags=[template_tag], responses={
     200: {
         "description": "Rendered HTML preview",
@@ -223,13 +242,12 @@ def render_page_get():
     400: {"description": "Template error"},
     413: {"description": "Template too large"}
 })
-def render_page_post():
-    """Render submitted template text"""
-    raw = request.form.get("template") or request.get_data(as_text=True) or ""
+def render_page_post(body: RenderRequest):
+    raw = body.template
     if len(raw.encode("utf-8")) > MAX_TPL_BYTES:
         return "Template too large", 413
 
-    image_url = request.form.get("image_url")
+    image_url = body.image_url
     if image_url and not is_safe_url(image_url):
         image_url = None
 
@@ -261,6 +279,7 @@ def render_page_post():
     except Exception as e:
         return f"Template error: {str(e)}", 400
 
+
 @app.post("/render/json", tags=[template_tag], responses={
     200: {
         "description": "Rendered HTML wrapped in JSON (for Swagger UI)",
@@ -276,13 +295,18 @@ def render_page_post():
     400: {"description": "Template error"},
     413: {"description": "Template too large"}
 })
-def render_page_post_json():
-    """Render submitted template and return JSON (Swagger-friendly)"""
-    raw = request.form.get("template") or request.get_data(as_text=True) or ""
+def render_page_post_json(body: RenderRequest):
+    raw = body.template
     if len(raw.encode("utf-8")) > MAX_TPL_BYTES:
         return jsonify({"error": "Template too large"}), 413
 
-    image_url = request.form.get("image_url")
+    if SIMPLE_ARITH_PATTERN.search(raw):
+        return "Trivial arithmetic or forbidden keywords detected.", 400
+
+    if contains_forbidden_keyword(raw):
+        return "Try using creative expressions that avoid basic math or restricted words.", 400
+
+    image_url = body.image_url
     if image_url and not is_safe_url(image_url):
         image_url = None
 
@@ -296,13 +320,6 @@ def render_page_post_json():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 400
-
-@app.get("/openapi/openapi.json")
-def openapi_json():
-    """Explicit route to serve raw OpenAPI JSON spec"""
-    resp = make_response(app.openapi)
-    resp.headers["Content-Type"] = "application/json"
-    return resp
 
 # --- Main execution ---
 
