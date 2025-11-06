@@ -80,25 +80,35 @@ def index():
 
 @app.post("/feedback")
 def feedback():
-    text = request.form.get("feedback", "").strip()
+    # Safely extract form data
+    raw = request.form.get("feedback")
+    text = (raw or "").strip()
+
     if not text:
         return jsonify({"error": "Feedback cannot be empty"}), 400
 
-    safe_text = text.replace("\n", "\\n").replace("\r", "\\r")
-    safe_text = html.escape(safe_text)
+    # HTML-escape first
+    safe_text = html.escape(text)
 
+    # Normalize newlines for logging
+    safe_text = safe_text.replace("\n", "\\n").replace("\r", "\\r")
+
+    # Metadata
     timestamp = datetime.utcnow().isoformat()
     ip = request.headers.get("X-Forwarded-For", request.remote_addr)
+    ua = request.headers.get("User-Agent", "?")
 
-    log_entry = f"[{timestamp}] IP={ip} MSG={safe_text}\n"
+    log_entry = f"[{timestamp}] IP={ip} UA={ua} MSG={safe_text}\n"
+
+    # Write to log safely
     try:
         with open(FEEDBACK_LOG, "a", encoding="utf-8") as f:
             f.write(log_entry)
     except Exception:
         return jsonify({"error": "Could not write feedback"}), 500
 
-    return redirect("/")
-
+    # 303 = safe redirect after POST
+    return redirect("/", code=303)
 
 @app.route("/status")
 def status():
