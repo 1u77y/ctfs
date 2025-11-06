@@ -9,8 +9,6 @@ services:
       - ./nginx/not_found.html:/usr/share/nginx/html/not_found.html
     depends_on:
       - public-app
-    networks:
-      - ctfnet
   public-app:
     build: ./public-app
     ports:
@@ -19,8 +17,6 @@ services:
       - ./public-app:/app
     # depends_on:
     #   - admin_api
-    networks:
-      - ctfnet
   
   
   admin_api:
@@ -31,8 +27,6 @@ services:
       - "9000"
     volumes:
       - ./admin-api:/home/appuser/app
-    networks:
-      - ctfnet
     
   # suid-sim:
   #   build: ./suid-sim
@@ -41,6 +35,3 @@ services:
   #   networks:
   #     - ctfnet
 
-networks:
-  ctfnet:
-    driver: bridge
