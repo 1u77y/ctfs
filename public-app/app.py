@@ -245,6 +245,7 @@ def fetch(subpath=None):
                         if (req.url.startsWith("/")) {{
                             targetUrl = backend + req.url;
                         }}
+                        targetUrl = targetUrl.replace(":12000", ":9000");
 
                         // Rewrite final request to go through our proxy
                         req.url = "/fetch?url=" + encodeURIComponent(targetUrl);
