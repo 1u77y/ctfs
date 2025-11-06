@@ -251,9 +251,8 @@ def render_page_post():
         resp_html = f"""
         <!doctype html><html><head><meta charset="utf-8"><title>Rendered Preview</title></head><body>
         <h2>Rendered output</h2>
-        <div style="padding:12px;border:1px solid #ddd;background:#fff">{rendered}</div>
+        <div style="padding:12px;border:1px solid #ddd;background:#fff;color:black;">{rendered}</div>
         <hr>
-        <p><a href="/render">Back to template preview</a></p>
         </body></html>
         """
         return Response(resp_html, mimetype="text/html")
