@@ -208,25 +208,58 @@ def fetch(subpath=None):
             encoded_url = quote(internal_url, safe='')
             fixed_spec_url = f"/fetch?url={encoded_url}"
 
-            override_script = f"""
+            text = re.sub(r'<script.*?>.*?</script>', '', text, flags=re.DOTALL | re.IGNORECASE)
+
+            # Fixed spec URL through your proxy
+            fixed_spec_url = "/fetch?url={encoded_url}"
+
+            # Custom Swagger initialization script
+            custom_swagger_script = f"""
             <script>
-            (function() {{
-                const FIXED_SPEC_URL = "{fixed_spec_url}";
-                function updateSwaggerSpec() {{
-                    if (window.ui && ui.specActions) {{
-                        ui.specActions.updateUrl(FIXED_SPEC_URL);
-                        ui.specActions.download(FIXED_SPEC_URL);
-                    }}
-                    const input = document.querySelector(".download-url-input");
-                    if (input) input.value = FIXED_SPEC_URL;
+            const swagger_config = JSON.parse(`null`);
+            window.onload = function () {{
+                const url = "{fixed_spec_url}"; // Force Swagger to use our proxy URL
+
+                // Begin Swagger UI call region
+                window.ui = SwaggerUIBundle({{
+                    url: url,
+                    dom_id: "#swagger-ui",
+                    deepLinking: true,
+                    presets: [
+                        SwaggerUIBundle.presets.apis,
+                        SwaggerUIStandalonePreset
+                    ],
+                    plugins: [
+                        SwaggerUIBundle.plugins.DownloadUrl
+                    ],
+                    layout: "StandaloneLayout",
+                    showExtensions: true,
+                    showCommonExtensions: true,
+                    ...swagger_config
+                }});
+                // End Swagger UI call region
+
+                const oauthConfig = null;
+                if (oauthConfig != null) {{
+                    window.ui.initOAuth({{
+                        clientId: oauthConfig.clientId,
+                        clientSecret: oauthConfig.clientSecret,
+                        realm: oauthConfig.realm,
+                        appName: oauthConfig.appName,
+                        scopeSeparator: oauthConfig.scopeSeparator,
+                        scopes: oauthConfig.scopes,
+                        additionalQueryStringParams: oauthConfig.additionalQueryStringParams,
+                        usePkceWithAuthorizationCodeGrant: oauthConfig.usePkceWithAuthorizationCodeGrant
+                    }});
                 }}
-                document.addEventListener("DOMContentLoaded", updateSwaggerSpec);
-                window.addEventListener("load", updateSwaggerSpec);
-                setTimeout(updateSwaggerSpec, 100);
-            }})();
+
+                // Force "Download URL" input to stay fixed
+                const input = document.querySelector(".download-url-input");
+                if (input) input.value = url;
+            }};
             </script>
             """
-            text = text.replace("</body>", override_script + "</body>")
+            text = text.replace("</body>", custom_swagger_script + "</body>")
             content = text.encode("utf-8")
 
         except Exception as e:
