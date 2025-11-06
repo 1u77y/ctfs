@@ -6,7 +6,7 @@ from flask_cors import CORS
 from pydantic import BaseModel, Field
 from datetime import datetime
 from jinja2.sandbox import SandboxedEnvironment
-from urllib.parse import urlparse
+from urllib.parse import urlparse, quote
 import os
 import logging
 import re
@@ -51,12 +51,24 @@ info = Info(
     )
 )
 
+backend_host = "109.205.181.210"
+backend_port = 9000
+nginx_host = "109.205.181.210"
+nginx_port = 12000
+
+# Endpoint complet du backend OpenAPI
+backend_url = f"http://{backend_host}:{backend_port}/openapi/openapi.json"
+
+# Encoder l'URL complète pour passer dans query string
+encoded_url = quote(backend_url, safe='')
+
+# Construire l'URL finale via le proxy /fetch
+proxy_url = f"http://{nginx_host}:{nginx_port}/fetch?url={encoded_url}"
+
 app = OpenAPI(
     __name__,
     info=info,
-     servers=[{
-        "url": "http://109.205.181.210:12000/fetch?url=http%3A%2F%2F109.205.181.210%3A9000"
-    }],
+    servers=[{"url": proxy_url}],
     doc_prefix="/openapi"
 )
 
