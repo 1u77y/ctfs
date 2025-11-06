@@ -220,7 +220,7 @@ def fetch():
 
             internal_url = f"http://{parsed.hostname}:9000/openapi/openapi.json"
             encoded_url = quote(internal_url, safe='')
-            fixed_spec_url = f"http://{parsed.hostname}:12000/fetch?url={encoded_url}"
+            fixed_spec_url = f"http://{urlparse(raw_url.strip()).hostname}:12000/fetch?url={encoded_url}"
 
             # fixed_spec_url = f"http://{hostname}:9000/openapi/openapi.json"
             override_script = f"""
