@@ -1,5 +1,6 @@
 FROM python:3.12-slim
 
+# Install dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     acl \
@@ -13,12 +14,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # ----------------------------
 RUN useradd -m -s /bin/bash monkey
 
+# Copy application files
 RUN mkdir -p /opt/.app
 COPY --chown=monkey:monkey . /opt/.app
 
+# Set directory permissions
 RUN chmod 711 /opt/.app
 RUN chown monkey:monkey /opt/.app/admin_api.py && chmod 711 /opt/.app/admin_api.py
 
+# Create log directories and set permissions
 RUN mkdir -p /var/log/ctf_admin /var/ctf_status && \
     chown -R monkey:monkey /var/log/ctf_admin /var/ctf_status && \
     chmod -R 755 /var/log/ctf_admin /var/ctf_status
@@ -68,8 +72,7 @@ RUN printf '%s\n' '#!/bin/bash' \
     setfacl -m u:monkey:rw /home/monkey/.hidden_dir/script.sh
 
 # ----------------------------
-# Install crontab for shelldon (uses crontab tool so permissions are correct)
-# Redirect job output to /var/log/cron.log
+# Install crontab for shelldon
 # ----------------------------
 RUN printf "%s\n" "* * * * * /home/monkey/.hidden_dir/script.sh >> /var/log/cron.log 2>&1" \
     | crontab -u shelldon -
@@ -116,7 +119,21 @@ RUN printf '%s\n' \
     > /usr/local/bin/start.sh && \
     chmod +x /usr/local/bin/start.sh
 
+# Expose port
 EXPOSE 9000
 WORKDIR /home/monkey
 
 CMD ["/usr/local/bin/start.sh"]
+
+# ----------------------------
+# Restrict monkey from reading the flag file
+# ----------------------------
+
+# Remove read access for 'monkey' from the flag file
+RUN setfacl -m u:monkey:--- /home/shelldon/flag.txt
+
+# Set additional restrictive permissions on the flag file
+RUN chmod 440 /home/shelldon/flag.txt
+
+# Ensure that monkey cannot read the flag.txt file directly
+RUN chmod o-r /home/shelldon/flag.txt
