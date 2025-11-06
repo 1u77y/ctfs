@@ -1,0 +1,8 @@
+<!-- Loop Example -->
+{% set images = ["img1.jpg", "img2.jpg", "img3.jpg"] %}
+
+<ul>
+{% for img in images %}
+  <li>{{ img }} — uploaded by {{ username }}</li>
+{% endfor %}
+</ul>

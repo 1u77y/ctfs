@@ -1,0 +1,8 @@
+<!-- Conditional Logic Example -->
+{% if username == "guest_user" %}
+<p>Hello, guest! Welcome to the preview.</p>
+{% else %}
+<p>Hello, {{ username }}!</p>
+{% endif %}
+
+<p>Server time is {{ server_time }}</p>

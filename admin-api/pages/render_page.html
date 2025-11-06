@@ -1,0 +1,86 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Gallery — Admin Template Preview</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 20px; max-width: 980px; }
+      textarea { width: 100%; height: 260px; font-family: monospace; white-space: pre; }
+      .panel { background:#f6f8fa; padding:12px; border-radius:6px; margin-bottom:12px; }
+      .hint { background:#fff3cd; padding:8px; border-left:4px solid #ffd966; }
+      pre { background:#222; color:#ddd; padding:12px; border-radius:6px; overflow:auto; }
+      label, select, button { font-size: 14px; }
+    </style>
+  </head>
+  <body>
+    <h1>Gallery — Admin Template Preview</h1>
+
+    <div class="panel">
+      <strong>Context</strong>
+      <p>The gallery uses caption templates to render previews for images. This preview page lets admins test templates before publishing.</p>
+      <p><em>Note:</em> This runs as a non-root user inside the container for CTF learning purposes.</p>
+    </div>
+
+    <div class="panel">
+      <strong>Available context variables</strong>
+      <ul>
+        <li><code>username</code> — admin username</li>
+        <li><code>image_url</code> — URL of the image</li>
+        <li><code>server_time</code> — UTC time</li>
+        <li><code>notice</code> — admin notice</li>
+      </ul>
+      <p>Try the examples below or craft your own template. Submissions are logged.</p>
+    </div>
+
+    <div style="margin-bottom:8px;">
+      <label for="example_select"><strong>Example templates:</strong></label>
+      <select id="example_select">
+        <option value="">-- choose example --</option>
+      </select>
+      <button id="load_example" type="button">Load</button>
+      <button id="refresh_list" type="button">Refresh list</button>
+    </div>
+
+    <form method="post" action="/render" id="render_form">
+      <label for="template"><strong>Template source</strong></label><br>
+      <textarea id="template" name="template" placeholder="Type template here..."></textarea><br><br>
+      <label for="image_url">Image URL (optional)</label><br>
+      <input id="image_url" name="image_url" style="width:100%" value=""><br><br>
+      <button type="submit">Render preview</button>
+    </form>
+
+    <hr>
+    <p><small>Submissions are logged to the operator log.</small></p>
+
+    <script>
+      async function fetchList() {
+        const res = await fetch('/templates/list');
+        const data = await res.json();
+        const sel = document.getElementById('example_select');
+        sel.innerHTML = '<option value="">-- choose example --</option>';
+        (data.templates || []).forEach(function(t) {
+          const opt = document.createElement('option');
+          opt.value = t;
+          opt.textContent = t;
+          sel.appendChild(opt);
+        });
+      }
+      async function loadExample() {
+        const sel = document.getElementById('example_select');
+        if (!sel.value) return;
+        const name = encodeURIComponent(sel.value);
+        const res = await fetch('/templates/get?name=' + name);
+        if (!res.ok) {
+          alert('Could not load template');
+          return;
+        }
+        const txt = await res.text();
+        document.getElementById('template').value = txt;
+      }
+      document.getElementById('load_example').addEventListener('click', loadExample);
+      document.getElementById('refresh_list').addEventListener('click', fetchList);
+
+      fetchList().catch(e=>console.error(e));
+    </script>
+  </body>
+</html>

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Image Gallery</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-800 min-h-screen flex flex-col">
+
+  <header class="bg-white shadow-md py-6 mb-8">
+    <div class="container mx-auto px-6">
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">Image Gallery</h1>
+    </div>  
+  </header>
+
+  <main class="container mx-auto px-6 flex-1">
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      {% for img in images %}
+      <div class="bg-white rounded-lg shadow hover:shadow-lg transition-shadow overflow-hidden">
+        <a href="{{ img.url }}" target="_blank">
+          <img src="/fetch?url={{ img.url|urlencode }}" alt="{{ img.name }}" class="w-full h-48 object-cover hover:scale-105 transition-transform duration-300">
+        </a>
+        <div class="p-4">
+          <small class="text-black break-all font-semibold text-xl">{{ img.name }}</small>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+  </main>
+
+  <footer class="bg-white shadow-inner py-4 mt-8">
+    <div class="container mx-auto px-6 text-center text-gray-500 text-sm">
+      &copy; {{ current_year }} CTF Image Gallery
+    </div>
+  </footer>
+
+</body>
+</html>
