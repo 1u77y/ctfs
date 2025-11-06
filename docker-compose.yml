@@ -14,7 +14,7 @@ services:
   public-app:
     build: ./public-app
     ports:
-      - "8080:8080"
+      - "8080"
     volumes:
       - ./public-app:/app
     # depends_on:
@@ -26,7 +26,7 @@ services:
   admin_api:
     build: ./admin-api
     ports:
-      - "9000:9000"
+      - "9000"
     expose:
       - "9000"
     volumes:
