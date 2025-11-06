@@ -122,7 +122,9 @@ def fetch():
     target_url = unquote(raw_url.strip())
     parsed = urlparse(target_url)
     if target_url == f"http://{parsed.hostname}/openapi.json":
-        target_url = f"http://{parsed.hostname}:9000/openapi/openapi.json"
+        internal_url = f"http://{parsed.hostname}:9000/openapi/openapi.json"
+        encoded_url = quote(internal_url, safe='')
+        target_url = f"http://{parsed.hostname}:12000/fetch?url={encoded_url}"
 
    
     if parsed.scheme not in ("http", "https") or not parsed.hostname:
@@ -216,7 +218,11 @@ def fetch():
                 flags=re.DOTALL | re.IGNORECASE
             )
 
-            fixed_spec_url = f"http://{hostname}:9000/openapi/openapi.json"
+            internal_url = f"http://{parsed.hostname}:9000/openapi/openapi.json"
+            encoded_url = quote(internal_url, safe='')
+            fixed_spec_url = f"http://{parsed.hostname}:12000/fetch?url={encoded_url}"
+
+            # fixed_spec_url = f"http://{hostname}:9000/openapi/openapi.json"
             override_script = f"""
             <script>
             (function() {{
