@@ -120,10 +120,11 @@ def fetch():
         return jsonify({"error": "Missing 'url' parameter"}), 400
 
     target_url = unquote(raw_url.strip())
-    if target_url == "http://localhost/openapi.json":
-        target_url = "http://localhost:9000/openapi/openapi.json"
-
     parsed = urlparse(target_url)
+    if target_url == f"http://{parsed.hostname}/openapi.json":
+        target_url = f"http://{parsed.hostname}:9000/openapi/openapi.json"
+
+   
     if parsed.scheme not in ("http", "https") or not parsed.hostname:
         return jsonify({"error": "Invalid URL scheme or hostname"}), 400
 
@@ -197,7 +198,7 @@ def fetch():
             def rewrite_static(m):
                 url_ = m.group("url").lstrip('/')
                 full_url = (
-                    f"http://localhost:9000/openapi/{url_}" if url_.startswith("swagger")
+                    f"http://{hostname}:9000/openapi/{url_}" if url_.startswith("swagger")
                     else f"{parsed.scheme}://{parsed.netloc}/{url_}"
                 )
                 return f'{m.group("prefix")}/fetch?url=' + quote(full_url, safe='')
@@ -215,7 +216,7 @@ def fetch():
                 flags=re.DOTALL | re.IGNORECASE
             )
 
-            fixed_spec_url = "http://localhost:9000/openapi/openapi.json"
+            fixed_spec_url = "http://{hostname}:9000/openapi/openapi.json"
             override_script = f"""
             <script>
             (function() {{

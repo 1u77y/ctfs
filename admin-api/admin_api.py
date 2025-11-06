@@ -54,7 +54,7 @@ info = Info(
 app = OpenAPI(
     __name__,
     info=info,
-    servers=[{"url": "http://localhost:9000"}],
+    servers=[{"url": "http://109.205.181.210:9000"}],
     doc_prefix="/openapi"
 )
 
