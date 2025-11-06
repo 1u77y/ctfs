@@ -34,7 +34,7 @@ RUN touch /var/log/cron.log && chmod 666 /var/log/cron.log
 # ----------------------------
 RUN useradd -m -s /bin/bash shelldon && \
     mkdir -p /home/shelldon && \
-    echo "SADC{chained_exploit_ssrf_ssti_rce_lpe}" > /home/shelldon/flag.txt && \
+    echo "SADC{chained_exploit_ssrf_ssti_rce}" > /home/shelldon/flag.txt && \
     chown shelldon:shelldon /home/shelldon/flag.txt && \
     chmod 440 /home/shelldon/flag.txt && \
     chmod 700 /home/shelldon
