@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Not Found</title>
+<style>
+    body {
+        background: #0a0a0a;
+        color: #d0d0d0;
+        font-family: Consolas, monospace;
+        padding: 40px;
+    }
+    .box {
+        border: 1px solid #444;
+        padding: 20px;
+        background: #111;
+        max-width: 600px;
+    }
+    .blink {
+        animation: blink 1s infinite;
+    }
+    @keyframes blink {
+        0% { opacity: 1; }
+        50% { opacity: 0; }
+        100% { opacity: 1; }
+    }
+</style>
+</head>
+<body>
+<div class="box">
+    <h2>404 — Resource Not Located</h2>
+    <p>
+        The endpoint you tried to access does not exist.<br>
+        Or maybe it does.<br><br>
+        <span class="blink">But not for you.</span>
+    </p>
+
+    <hr>
+
+    <p>
+        <strong>Debug Info:</strong><br>
+        ROUTE_STATUS: unreachable<br>
+        REASON: handler_not_registered<br>
+        HINT: If you're seeing this, you're enumerating wrong.
+    </p>
+
+    <p>
+        Some players said they found something here.<br>
+        They were wrong.<br>
+        Or lying.<br>
+        Or both.
+    </p>
+
+    <p>
+        If you think this is a clue… it isn't.<br>
+        (But maybe the real clue is the fact that it isn't.)  
+    </p>
+
+    <hr>
+    <p style="color:#666;">
+        [ log: route probe ignored ]  
+    </p>
+</div>
+</body>
+</html>

@@ -1,86 +1,202 @@
-<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <title>Gallery — Admin Template Preview</title>
-    <style>
-      body { font-family: Arial, sans-serif; margin: 20px; max-width: 980px; }
-      textarea { width: 100%; height: 260px; font-family: monospace; white-space: pre; }
-      .panel { background:#f6f8fa; padding:12px; border-radius:6px; margin-bottom:12px; }
-      .hint { background:#fff3cd; padding:8px; border-left:4px solid #ffd966; }
-      pre { background:#222; color:#ddd; padding:12px; border-radius:6px; overflow:auto; }
-      label, select, button { font-size: 14px; }
-    </style>
-  </head>
-  <body>
-    <h1>Gallery — Admin Template Preview</h1>
 
-    <div class="panel">
-      <strong>Context</strong>
-      <p>The gallery uses caption templates to render previews for images. This preview page lets admins test templates before publishing.</p>
-      <p><em>Note:</em> This runs as a non-root user inside the container for CTF learning purposes.</p>
+<!-- Hidden CTF hint: only visible in DevTools -->
+<!--
+/**
+ * Submit a template to the backend rendering API.
+ * 
+ * Endpoint: POST /render/json
+ * Content-Type: application/json
+ *
+ * Request body parameters:
+ * @param {string} template - The template source code to render (required).
+ * @param {string} [image_url] - Optional URL of the image to use in the template.
+ *
+ * Response:
+ * @returns {object} 200 - JSON object containing the rendered HTML
+ *   - {string} rendered_html - The HTML output of the rendered template
+ * @returns {object} 400 - JSON object containing an error message for template errors
+ * @returns {object} 413 - JSON object containing an error message if template is too large
+ *
+ *
+ */
+
+
+-->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Admin Template Preview — Gallery</title>
+
+<style>
+    body { background: #0a0a0a; color: #d0d0d0; font-family: Consolas, monospace; padding: 40px; }
+    h1 { color: #fff; border-bottom: 1px solid #333; padding-bottom: 6px; margin-bottom: 25px; }
+    .panel { background: #111; border: 1px solid #333; padding: 18px; border-radius: 6px; margin-bottom: 20px; }
+    textarea { width: 100%; height: 260px; font-family: Consolas, monospace; background: #0e0e0e; color: #eee; border: 1px solid #444; padding: 10px; border-radius: 6px; white-space: pre; }
+    input[type="text"] { width: 100%; padding: 8px; background: #0e0e0e; color: #eee; border: 1px solid #444; border-radius: 6px; }
+    button { background: #222; color: #eee; border: 1px solid #555; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #333; }
+    select { background: #0e0e0e; color: #eee; border: 1px solid #555; padding: 4px; border-radius: 4px; }
+    .hintbox { background: #121212; border-left: 4px solid #ffd966; padding: 12px; margin-bottom: 20px; }
+    .blink { animation: blink 1.2s infinite; }
+    @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
+    hr { border: none; border-top: 1px solid #333; margin: 25px 0; }
+    small { color: #555; }
+    #preview { margin-top: 20px; background: #111; padding: 16px; border-radius: 6px; border: 1px solid #333; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+
+<h1>Admin Template Preview — Gallery</h1>
+
+<div class="panel">
+    <strong>Context</strong>
+    <p>This subsystem renders caption templates for images. Operators test templates here before synchronizing them.</p>
+    <p><em>Note:</em> This instance runs inside an isolated container with restricted privileges.</p>
+    <div class="hintbox">
+        <strong>Operator Notice:</strong><br>
+        Some templates behave differently depending on context.<br>
+        Some operators noticed things others didn’t.<br>
+        <span class="blink">Some say the preview hides more than it shows.</span>
     </div>
+</div>
 
-    <div class="panel">
-      <strong>Available context variables</strong>
-      <ul>
+<div class="panel">
+    <strong>Available variables</strong>
+    <ul>
         <li><code>username</code> — admin username</li>
         <li><code>image_url</code> — URL of the image</li>
-        <li><code>server_time</code> — UTC time</li>
-        <li><code>notice</code> — admin notice</li>
-      </ul>
-      <p>Try the examples below or craft your own template. Submissions are logged.</p>
-    </div>
+        <li><code>server_time</code> — UTC</li>
+        <li><code>notice</code> — operator message</li>
+    </ul>
+    <p>Use the examples or craft your own template. Submissions are logged.</p>
+</div>
 
-    <div style="margin-bottom:8px;">
-      <label for="example_select"><strong>Example templates:</strong></label>
-      <select id="example_select">
+<div style="margin-bottom:12px;">
+    <label for="example_select"><strong>Example templates:</strong></label>
+    <select id="example_select">
         <option value="">-- choose example --</option>
-      </select>
-      <button id="load_example" type="button">Load</button>
-      <button id="refresh_list" type="button">Refresh list</button>
-    </div>
+    </select>
+    <button id="load_example" type="button">Load</button>
+    <button id="refresh_list" type="button">Refresh list</button>
+</div>
 
-    <form method="post" action="/render" id="render_form">
-      <label for="template"><strong>Template source</strong></label><br>
-      <textarea id="template" name="template" placeholder="Type template here..."></textarea><br><br>
-      <label for="image_url">Image URL (optional)</label><br>
-      <input id="image_url" name="image_url" style="width:100%" value=""><br><br>
-      <button type="submit">Render preview</button>
-    </form>
+<form id="render_form">
+    <label for="template"><strong>Template source</strong></label><br>
+    <textarea id="template" name="template" placeholder="Type template here..."></textarea><br><br>
 
-    <hr>
-    <p><small>Submissions are logged to the operator log.</small></p>
+    <label for="image_url"><strong>Image URL (optional)</strong></label><br>
+    <input id="image_url" type="text" name="image_url" value=""><br><br>
 
-    <script>
-      async function fetchList() {
-        const res = await fetch('/templates/list');
-        const data = await res.json();
-        const sel = document.getElementById('example_select');
-        sel.innerHTML = '<option value="">-- choose example --</option>';
-        (data.templates || []).forEach(function(t) {
-          const opt = document.createElement('option');
-          opt.value = t;
-          opt.textContent = t;
-          sel.appendChild(opt);
+    <button type="submit">Render preview</button>
+</form>
+
+<div id="preview"></div>
+
+<hr>
+<p><small>[ log: operator template submission accepted ]</small></p>
+
+<script>
+async function fetchList() {
+    const res = await fetch('http://localhost:9000/templates/list');
+    const data = await res.json();
+    const sel = document.getElementById('example_select');
+    sel.innerHTML = '<option value="">-- choose example --</option>';
+    (data.templates || []).forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t;
+        opt.textContent = t;
+        sel.appendChild(opt);
+    });
+}
+
+async function loadExample() {
+    const sel = document.getElementById('example_select');
+    if (!sel.value) return;
+    const name = encodeURIComponent(sel.value);
+    const res = await fetch('http://localhost:9000/templates/get?name=' + name);
+    if (!res.ok) { alert('Could not load template'); return; }
+    const txt = await res.text();
+    document.getElementById('template').value = txt;
+}
+
+document.getElementById('load_example').addEventListener('click', loadExample);
+document.getElementById('refresh_list').addEventListener('click', fetchList);
+fetchList().catch(e => console.error(e));
+
+// ---- AJAX form submission ----
+document.getElementById('render_form').addEventListener('submit', async function(e) {
+    e.preventDefault(); // Prevent normal form submission
+
+    const template = document.getElementById('template').value;
+    const image_url = document.getElementById('image_url').value;
+
+    // Update browser URL without reloading
+    const urlParam = encodeURIComponent('http://localhost:9000/render');
+    history.replaceState(null, '', '/fetch?url=' + urlParam);
+
+    try {
+        const res = await fetch('http://localhost:9000/render', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ template, image_url })
         });
-      }
-      async function loadExample() {
-        const sel = document.getElementById('example_select');
-        if (!sel.value) return;
-        const name = encodeURIComponent(sel.value);
-        const res = await fetch('/templates/get?name=' + name);
-        if (!res.ok) {
-          alert('Could not load template');
-          return;
-        }
-        const txt = await res.text();
-        document.getElementById('template').value = txt;
-      }
-      document.getElementById('load_example').addEventListener('click', loadExample);
-      document.getElementById('refresh_list').addEventListener('click', fetchList);
 
-      fetchList().catch(e=>console.error(e));
-    </script>
-  </body>
+        if (!res.ok) {
+            document.getElementById('preview').textContent = '[Error rendering template]';
+            return;
+        }
+
+        const html = await res.text();
+        document.getElementById('preview').innerHTML = html;
+    } catch(err) {
+        document.getElementById('preview').textContent = '[Request failed]';
+        console.error(err);
+    }
+});
+</script>
+
+</body>
 </html>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Admin Metadata</title>
+<style>
+    body {
+        background: #0a0a0a;
+        color: #d0d0d0;
+        font-family: Consolas, monospace;
+        padding: 40px;
+    }
+    .box {
+        border: 1px solid #444;
+        padding: 20px;
+        background: #111;
+        max-width: 600px;
+    }
+    .blink {
+        animation: blink 1s infinite;
+    }
+    @keyframes blink {
+        0% { opacity: 1; }
+        50% { opacity: 0; }
+        100% { opacity: 1; }
+    }
+</style>
+</head>
+<body>
+<div class="box">
+    <h2>Admin Interface — Indirect Access</h2>
+    <p>
+        You reached a surface-level endpoint.<br>
+        It responds… but not with what you want.<br><br>
+        <span class="blink">You're close. Just not here.</span>
+    </p>
+
+    <hr>
+
+    <p>
+        <strong>Service Metadata:</strong><br>
+        SERVICE: admin<br>
+        VERSION: 1.0.0<br>
+        NOTES: Those who look beyond the surface might find hidden paths.
+    </p>
+
+    <hr>
+
+    <p>
+        <strong>Debug Trace:</strong><br>
+        ACCESS_MODE: restricted_view<br>
+        PRIVILEGE: insufficient<br>
+        NEXT_STEP: discover_deeper_routes
+    </p>
+
+    <p>
+        Many players stop here.<br>
+        The ones who don’t usually find what they're looking for.<br>
+        Eventually.
+    </p>
+
+    <p>
+        If you think this is the endpoint… it isn't.<br>
+        (But the real one is not far.)
+    </p>
+
+    <hr>
+    <p style="color:#666;">
+        [ log: probe acknowledged — curiosity noted ]  
+    </p>
+</div>
+</body>
+</html>

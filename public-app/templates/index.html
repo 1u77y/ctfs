@@ -5,35 +5,145 @@
   <title>Image Gallery</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 text-gray-800 min-h-screen flex flex-col">
+<body class="bg-gray-50 text-gray-800 min-h-screen flex flex-col">
 
-  <header class="bg-white shadow-md py-6 mb-8">
-    <div class="container mx-auto px-6">
-      <h1 class="text-3xl font-bold text-gray-900 mb-2">Image Gallery</h1>
-    </div>  
+  <!-- HEADER -->
+  <header class="bg-white shadow-md py-6 mb-10 sticky top-0 z-20">
+    <div class="container mx-auto px-6 flex items-center justify-between">
+      <h1 class="text-3xl font-bold text-gray-900 tracking-tight">
+        🖼️ Image Gallery
+      </h1>
+
+      <!-- FEEDBACK BUTTON -->
+      <button 
+        id="feedbackBtn"
+        class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg shadow transition"
+      >
+        Give Feedback
+      </button>
+    </div>
   </header>
 
+  <!-- MAIN -->
   <main class="container mx-auto px-6 flex-1">
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+
+    {% if images|length == 0 %}
+    <div class="text-center mt-24 opacity-70">
+      <div class="text-6xl mb-4">📭</div>
+      <p class="text-xl font-semibold mb-2">No Images Available</p>
+      <p class="text-gray-500">Upload images or refresh the gallery.</p>
+    </div>
+    {% else %}
+    <div 
+      class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 
+             gap-8 animate-fadeIn"
+    >
       {% for img in images %}
-      <div class="bg-white rounded-lg shadow hover:shadow-lg transition-shadow overflow-hidden">
-        <a href="{{ img.url }}" target="_blank">
-          <img src="/fetch?url={{ img.url|urlencode }}" alt="{{ img.name }}" class="w-full h-48 object-cover hover:scale-105 transition-transform duration-300">
+      <div 
+        class="bg-white rounded-xl shadow-md border border-gray-200 
+               hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden"
+      >
+        <a href="{{ img.url }}" target="_blank" class="block group">
+          <img 
+            src="/fetch?url={{ img.url|urlencode }}" 
+            alt="{{ img.name }}" 
+            class="w-full h-52 object-cover 
+                   group-hover:scale-105 transition-transform duration-500"
+          >
         </a>
-        <div class="p-4">
-          <small class="text-black break-all font-semibold text-xl">{{ img.name }}</small>
+
+        <div class="p-5">
+          <p class="text-gray-900 font-semibold text-lg break-all leading-snug">
+            {{ img.name }}
+          </p>
+          <p class="text-gray-400 text-xs mt-1">
+            Click image for full resolution →
+          </p>
         </div>
       </div>
       {% endfor %}
     </div>
+    {% endif %}
 
   </main>
 
-  <footer class="bg-white shadow-inner py-4 mt-8">
+  <!-- FOOTER -->
+  <footer class="bg-white shadow-inner py-6 mt-10">
     <div class="container mx-auto px-6 text-center text-gray-500 text-sm">
-      &copy; {{ current_year }} CTF Image Gallery
+      &copy; {{ current_year }} CTF Image Gallery — Secure Image Sandbox
     </div>
   </footer>
+
+  <!-- FEEDBACK MODAL -->
+  <div id="feedbackModal" 
+       class="fixed inset-0 bg-black bg-opacity-40 hidden justify-center items-center z-30">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 transform scale-95 opacity-0 transition-all"
+         id="modalContent">
+
+      <h2 class="text-2xl font-bold text-gray-900 mb-4">
+        Give Feedback
+      </h2>
+
+      <p class="text-gray-600 text-sm mb-4">
+        Found something misleading, confusing, or intentionally deceptive (😉)?  
+        Help us improve user experience.
+      </p>
+
+      <form method="post" action="/feedback">
+        <textarea name="feedback" 
+                  required
+                  class="w-full h-32 border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  placeholder="Write your feedback here..."></textarea>
+
+        <div class="flex justify-end space-x-3 mt-4">
+          <button type="button" id="closeModal"
+                  class="px-4 py-2 text-gray-600 hover:text-gray-800 transition">
+            Cancel
+          </button>
+
+          <button type="submit"
+                  class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow transition">
+            Submit
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+  <style>
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fadeIn { animation: fadeIn 0.5s ease-in-out; }
+  </style>
+
+  <!-- MODAL SCRIPT -->
+  <script>
+    const btn = document.getElementById("feedbackBtn");
+    const modal = document.getElementById("feedbackModal");
+    const closeBtn = document.getElementById("closeModal");
+    const modalContent = document.getElementById("modalContent");
+
+    btn.onclick = () => {
+      modal.classList.remove("hidden");
+      setTimeout(() => {
+        modalContent.classList.remove("scale-95", "opacity-0");
+      }, 10);
+    };
+
+    closeBtn.onclick = () => {
+      modalContent.classList.add("scale-95", "opacity-0");
+      setTimeout(() => modal.classList.add("hidden"), 150);
+    };
+
+    modal.onclick = (e) => {
+      if (e.target === modal) {
+        closeBtn.click();
+      }
+    };
+  </script>
 
 </body>
 </html>

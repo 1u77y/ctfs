@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from flask import jsonify, send_from_directory, Response, make_response, request
+from flask import jsonify, send_from_directory, Response, make_response, request, render_template, current_app,abort
 from flask_openapi3 import OpenAPI, Info, Tag
 from flask_cors import CORS
 from pydantic import BaseModel, Field
@@ -58,7 +58,6 @@ app = OpenAPI(
     doc_prefix="/openapi"
 )
 
-# Enable CORS for all routes (adjust origins for production)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 # API Tags
@@ -108,32 +107,16 @@ def get_template_context(image_url=None):
         "notice": "This is an intentionally vulnerable sandbox for CTF use."
     }
 
-# --- Endpoints ---
-
-@app.get("/admin", tags=[admin_tag], responses={
-    200: {
-        "description": "Admin service metadata",
-        "content": {
-            "application/json": {
-                "schema": {
-                    "type": "object",
-                    "properties": {
-                        "service": {"type": "string"},
-                        "version": {"type": "string"},
-                        "notes": {"type": "string"}
-                    }
-                }
-            }
-        }
-    }
-})
+@app.get("/admin")
 def admin():
-    """Admin metadata"""
-    return jsonify({
-        "service": "admin",
-        "version": "1.0.0",
-        "notes": "Those who look beyond the surface might find hidden paths. Try Harder"
-    })
+    print(current_app.jinja_loader.searchpath)
+    try:
+        html = render_template("hint.html")  # ✅ correct
+        print(html)
+        return Response(html, status=200, mimetype="text/html")
+    except Exception:
+        current_app.logger.exception("Failed to render admin hint page")
+        abort(404)
 
 @app.get("/status", tags=[admin_tag], responses={
     200: {
@@ -204,17 +187,7 @@ def templates_get(query: TemplateQuery):
         return jsonify({"error": "not found"}), 404
     return send_from_directory(TEMPLATES_DIR, safe_name, mimetype="text/plain")
 
-@app.get("/render", tags=[template_tag], responses={
-    200: {
-        "description": "Render page HTML",
-        "content": {
-            "text/html": {
-                "schema": {"type": "string"}
-            }
-        }
-    },
-    500: {"description": "Operator error"}
-})
+@app.get("/render", tags=[template_tag])
 def render_page_get():
     """Return the render page UI (static HTML in pages/render_page.html)"""
     page_path = os.path.join(PAGES_DIR, "render_page.html")
@@ -224,28 +197,24 @@ def render_page_get():
         return fh.read()
 
 
-@app.post("/render", tags=[template_tag], responses={
-    200: {
-        "description": "Rendered HTML preview",
-        "content": {
-            "text/html": {"schema": {"type": "string"}},
-            "application/json": {
-                "schema": {
-                    "type": "object",
-                    "properties": {"rendered_html": {"type": "string"}}
-                }
-            }
-        }
-    },
-    400: {"description": "Template error"},
-    413: {"description": "Template too large"}
-})
-def render_page_post(body: RenderRequest):
-    raw = body.template
+@app.route("/render", methods=["POST"])
+def render_page_post():
+    # Try JSON first
+    if request.is_json:
+        body = request.get_json()
+        raw = body.get("template")
+        image_url = body.get("image_url")
+    else:
+        # fallback to form data
+        raw = request.form.get("template")
+        image_url = request.form.get("image_url")
+
+    if not raw:
+        return "No template provided", 400
+
     if len(raw.encode("utf-8")) > MAX_TPL_BYTES:
         return "Template too large", 413
 
-    image_url = body.image_url
     if image_url and not is_safe_url(image_url):
         image_url = None
 
@@ -253,8 +222,8 @@ def render_page_post(body: RenderRequest):
     logging.info("Submission from %s: %s", request.remote_addr, logged)
 
     try:
-        template = insecure_env.from_string(raw)
-        rendered = template.render(**get_template_context(image_url=image_url))
+        template_obj = insecure_env.from_string(raw)
+        rendered = template_obj.render(**get_template_context(image_url=image_url))
 
         FAKE_FLAG = "SADC{render_pipeline_owned_by_you_kudos_and_tears}"
         if FAKE_FLAG in rendered:
@@ -276,23 +245,8 @@ def render_page_post(body: RenderRequest):
 
     except Exception as e:
         return f"Template error: {str(e)}", 400
-
-
-@app.post("/render/json", tags=[template_tag], responses={
-    200: {
-        "description": "Rendered HTML wrapped in JSON (for Swagger UI)",
-        "content": {
-            "application/json": {
-                "schema": {
-                    "type": "object",
-                    "properties": {"rendered_html": {"type": "string"}}
-                }
-            }
-        }
-    },
-    400: {"description": "Template error"},
-    413: {"description": "Template too large"}
-})
+    
+@app.post("/render/json")
 def render_page_post_json(body: RenderRequest):
     raw = body.template
     if len(raw.encode("utf-8")) > MAX_TPL_BYTES:
