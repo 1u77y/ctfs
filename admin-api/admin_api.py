@@ -120,6 +120,11 @@ def get_template_context(image_url=None):
         "notice": "Am a guest."
     }
 
+
+@app.get("/")
+def home():
+    abort(404)
+    
 @app.get("/admin")
 def admin():
     print(current_app.jinja_loader.searchpath)
