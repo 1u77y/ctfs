@@ -234,6 +234,23 @@ def fetch(subpath=None):
                         SwaggerUIBundle.plugins.DownloadUrl
                     ],
                     layout: "StandaloneLayout",
+                    requestInterceptor: (req) => {{
+                        const backend = "http://109.205.181.210:9000";
+
+                        if (req.url.startsWith("/fetch?url=")) {{
+                            return req;
+                        }}
+
+                        let targetUrl = req.url;
+                        if (req.url.startsWith("/")) {{
+                            targetUrl = backend + req.url;
+                        }}
+
+                        // Rewrite final request to go through our proxy
+                        req.url = "/fetch?url=" + encodeURIComponent(targetUrl);
+
+                        return req;
+                    }},
                     showExtensions: true,
                     showCommonExtensions: true,
                     ...swagger_config
@@ -260,6 +277,7 @@ def fetch(subpath=None):
             }};
             </script>
             """
+
             text = text.replace("</body>", custom_swagger_script + "</body>")
             content = text.encode("utf-8")
 
