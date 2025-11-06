@@ -63,7 +63,7 @@ backend_url = f"http://{backend_host}:{backend_port}/openapi/openapi.json"
 encoded_url = quote(backend_url, safe='')
 
 # Construire l'URL finale via le proxy /fetch
-proxy_url = f"http://{nginx_host}:{nginx_port}/fetch?url={encoded_url}"
+proxy_url = f"http://{nginx_host}:{nginx_port}"
 
 app = OpenAPI(
     __name__,
