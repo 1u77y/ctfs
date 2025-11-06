@@ -206,7 +206,7 @@ def fetch(subpath=None):
             # inject fixed Swagger JSON spec URL
             internal_url = f"http://admin_api:9000/openapi/openapi.json"
             encoded_url = quote(internal_url, safe='')
-            fixed_spec_url = f"http://109.205.181.210:9000/fetch/openapi/openapi.json"
+            fixed_spec_url = f"http://109.205.181.210:12000/fetch/openapi/openapi.json"
 
             override_script = f"""
             <script>
