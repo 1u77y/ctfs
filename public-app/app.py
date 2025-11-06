@@ -233,11 +233,6 @@ def fetch(subpath=None):
                     plugins: [
                         SwaggerUIBundle.plugins.DownloadUrl
                     ],
-                    requestInterceptor: (req) => {{
-                        // Rewrite all API requests to go through /fetch
-                        req.url = '/fetch?url=' + encodeURIComponent(req.url);
-                        return req;
-                    }},
                     layout: "StandaloneLayout",
                     showExtensions: true,
                     showCommonExtensions: true,
